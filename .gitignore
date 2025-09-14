@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+**/.env
+server/.env
+web/.env*
+mobile/.env
+.DS_Store

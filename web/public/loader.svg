@@ -1,0 +1,55 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ALLUVO Clapper Beat loader">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#10131C"/><stop offset="60%" stop-color="#080A11"/><stop offset="100%" stop-color="#05070C"/>
+    </radialGradient>
+
+    <linearGradient id="cgTop" x1="76" y1="76" x2="196" y2="100">
+      <stop stop-color="#7B61FF"/><stop offset="0.5" stop-color="#22D3EE"/><stop offset="1" stop-color="#FF2D55"/>
+    </linearGradient>
+    <linearGradient id="cgBody" x1="60" y1="188" x2="196" y2="108">
+      <stop stop-color="#22D3EE"/><stop offset="1" stop-color="#C6F432"/>
+    </linearGradient>
+    <linearGradient id="runway" x1="104" y1="192" x2="152" y2="148">
+      <stop stop-color="#FFC845"/><stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <mask id="mTop"><rect x="76" y="76" width="120" height="24" rx="6" fill="#fff"/></mask>
+  </defs>
+
+  <style>
+    .arm { transform-origin: 88px 88px; animation: clap 2s cubic-bezier(.3,.7,.2,1) infinite; }
+    .flash { opacity: 0; animation: flash 2s infinite; }
+    .barTrack { fill: rgba(255,255,255,.18); }
+    .barFill { fill: rgba(255,255,255,.9); animation: load 2s ease-in-out infinite; }
+    .runway { animation: breathe 2.4s .4s ease-in-out infinite; }
+    @keyframes clap { 0%{transform: rotate(-12deg)} 28%{transform: rotate(-36deg)} 42%{transform: rotate(-6deg)} 56%{transform: rotate(-12deg)} 100%{transform: rotate(-12deg)} }
+    @keyframes flash { 0%,27%{opacity:0} 33%{opacity:.28} 46%{opacity:0} 100%{opacity:0} }
+    @keyframes load { 0%{x:96px;width:0px} 70%{x:96px;width:64px} 100%{x:96px;width:0px} }
+    @keyframes breathe { 0%,100%{opacity:.85} 50%{opacity:1} }
+  </style>
+
+  <rect width="256" height="256" fill="url(#bg)"/>
+
+  <!-- Body -->
+  <g>
+    <rect x="60" y="108" width="136" height="84" rx="12" fill="url(#cgBody)" opacity="0.95"/>
+    <!-- “Screen” slot -->
+    <rect x="96" y="124" width="64" height="8" rx="4" class="barTrack"/>
+    <rect x="96" y="124" width="0" height="8" rx="4" class="barFill"/>
+    <!-- Runway -->
+    <polygon points="100,192 156,192 128,148" fill="url(#runway)" class="runway"/>
+    <!-- Flash -->
+    <rect x="60" y="108" width="136" height="84" rx="12" fill="#FFFFFF" class="flash"/>
+  </g>
+
+  <!-- Clapper arm -->
+  <g class="arm">
+    <rect x="76" y="76" width="120" height="24" rx="6" fill="url(#cgTop)"/>
+    <g mask="url(#mTop)" opacity="0.55">
+      <line x1="86" y1="80" x2="126" y2="96" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+      <line x1="118" y1="80" x2="158" y2="96" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+      <line x1="150" y1="80" x2="190" y2="96" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+    </g>
+    <circle cx="88" cy="88" r="4" fill="#FFFFFF" opacity="0.95"/>
+  </g>
+</svg>

@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "ALLUVO",
+    "slug": "alluvo",
+    "scheme": "alluvo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./icon.png",
+    "splash": { "image": "./splash.png", "resizeMode": "contain", "backgroundColor": "#0b0f1a" },
+    "ios": { "supportsTablet": true },
+    "android": { "package": "com.alluvoservices.alluvo" },
+    "web": { "bundler": "metro" },
+    "extra": { "webAppUrl": "https://alluvoservices.github.io/ALLUVO/" }
+  }
+}
