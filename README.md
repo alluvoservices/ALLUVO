@@ -9,9 +9,9 @@ Live web URL (after deploy): https://alluvoservices.github.io/ALLUVO/
 
 Quick steps
 1) Upload assets in web/public (you can do this later)
-   - logo.jpg  (your logo)
+   - logo.svg  (your logo)
    - loader.svg (loading animation)
-   - opening.mp4 (optional opening video)
+   - opening.svg (optional opening video)
 2) Commit & Push (Source Control in Codespaces).
 3) Deploy backend to Render
    - Root Directory: server

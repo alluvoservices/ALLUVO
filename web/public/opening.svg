@@ -1,0 +1,46 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ALLUVO Cinemascope Proscenium animated logo">
+  <defs>
+    <linearGradient id="pf1" x1="56" y1="60" x2="200" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="0.5" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#C6F432"/>
+    </linearGradient>
+    <linearGradient id="pf2" x1="72" y1="80" x2="184" y2="178" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#FF2D55"/>
+    </linearGradient>
+    <linearGradient id="pf3" x1="88" y1="100" x2="168" y2="174" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF2D55"/>
+      <stop offset="1" stop-color="#FFC845"/>
+    </linearGradient>
+    <linearGradient id="runwayG" x1="106" y1="182" x2="150" y2="134" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFC845"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .frame { fill: none; stroke-linejoin: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+    .f1 { animation: draw 0.9s ease-out forwards; }
+    .f2 { animation: draw 0.9s 0.25s ease-out forwards; }
+    .f3 { animation: draw 0.9s 0.5s ease-out forwards; }
+    .runway { transform-box: fill-box; transform-origin: 50% 0%; transform: scaleY(0); animation: rise 0.8s 0.95s cubic-bezier(.2,.8,.2,1) forwards; }
+    .screen { opacity: 0; transform-box: fill-box; transform-origin: 50% 50%; transform: scaleX(0.7); animation: screenIn 0.5s 1.25s ease-out forwards, pulse 2.4s 1.8s ease-in-out infinite alternate; }
+
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes rise { to { transform: scaleY(1); } }
+    @keyframes screenIn { to { opacity: 1; transform: scaleX(1); } }
+    @keyframes pulse { from { opacity: 0.9; } to { opacity: 1; } }
+  </style>
+
+  <!-- Proscenium frames (widescreen theater feel) -->
+  <path pathLength="100" d="M56 182 L92 60 L164 60 L200 182 Z" stroke="url(#pf1)" stroke-width="14" class="frame f1"/>
+  <path pathLength="100" d="M72 178 L112 80 L144 80 L184 178 Z" stroke="url(#pf2)" stroke-width="9" class="frame f2"/>
+  <path pathLength="100" d="M88 174 L124 100 L132 100 L168 174 Z" stroke="url(#pf3)" stroke-width="6" class="frame f3"/>
+
+  <!-- Screen bar -->
+  <rect x="111" y="86" width="34" height="6" rx="3" fill="#22D3EE" class="screen"/>
+
+  <!-- Glowing aisle/runway -->
+  <polygon points="106,182 150,182 136,134 120,134" fill="url(#runwayG)" class="runway"/>
+</svg>

@@ -106,3 +106,6 @@ body { margin: 0; background: radial-gradient(1000px 600px at 20% 0, #0e1424, #0
 .list { display: grid; gap: 8px; }
 .list .row { background: #0e1526cc; border: 1px solid #162038; border-radius: 12px; padding: 12px; }
 
+
+/* Make SVG opening animation scale like the video */
+.overlay object { width: 60vw; max-width: 720px; height: auto; border-radius: 16px; box-shadow: var(--shadow-neon); }

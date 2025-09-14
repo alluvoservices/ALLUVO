@@ -16,7 +16,12 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <img src={`${base}logo.jpg`} alt="logo" />
+        {/* Prefer SVG logo; fallback to JPG if SVG is missing */}
+        <img
+          src={`${base}logo.svg`}
+          alt="ALLUVO logo"
+          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${base}logo.jpg`; }}
+        />
         <div className="name">ALLUVO</div>
       </div>
       <nav className="nav">
