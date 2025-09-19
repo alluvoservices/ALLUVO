@@ -1,9 +1,13 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
+import {
+  UserCircle2, Search, Clapperboard, UtensilsCrossed,
+  MessagesSquare, Ticket, Gamepad2, Bell, Settings, LogIn
+} from "lucide-react";
 
-const Item = ({ to, icon, label }) => (
+const Item = ({ to, icon: IconComp, label }) => (
   <NavLink className="item" to={to}>
-    <span style={{ width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{icon}</span>
+    <span className="icon-wrap"><IconComp size={20} strokeWidth={2} /></span>
     <span className="label">{label}</span>
   </NavLink>
 );
@@ -16,27 +20,26 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        {/* Prefer SVG logo; fallback to JPG if SVG is missing */}
         <img
           src={`${base}logo.svg`}
-          alt="ALLUVO logo"
+          alt="ALLUVO"
           onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${base}logo.jpg`; }}
         />
         <div className="name">ALLUVO</div>
       </div>
       <nav className="nav">
-        <Item to="/profiles" icon={<span className="avatar-mini">{initial}</span>} label="Profile" />
-        <Item to="/search" icon={"🔎"} label="Search" />
-        <Item to="/stream" icon={"🎬"} label="Stream" />
-        <Item to="/order" icon={"🍱"} label="Order" />
-        <Item to="/friends" icon={"💬"} label="Friends" />
-        <Item to="/tickets" icon={"🎟️"} label="Tickets" />
-        <Item to="/playzone" icon={"🕹️"} label="Playzone" />
+        <Item to="/profiles" icon={() => <div className="avatar-mini">{initial}</div>} label="Profile" />
+        <Item to="/search" icon={Search} label="Search" />
+        <Item to="/stream" icon={Clapperboard} label="Stream" />
+        <Item to="/order" icon={UtensilsCrossed} label="Order" />
+        <Item to="/friends" icon={MessagesSquare} label="Friends" />
+        <Item to="/tickets" icon={Ticket} label="Tickets" />
+        <Item to="/playzone" icon={Gamepad2} label="Playzone" />
       </nav>
       <div className="sidebar-bottom">
-        <Item to="/notifications" icon={"🔔"} label="Notifications" />
-        <Item to="/settings" icon={"⚙️"} label="Settings" />
-        <Item to="/login" icon={"🔐"} label="Login" />
+        <Item to="/notifications" icon={Bell} label="Notifications" />
+        <Item to="/settings" icon={Settings} label="Settings" />
+        <Item to="/login" icon={LogIn} label="Login" />
       </div>
     </aside>
   );
