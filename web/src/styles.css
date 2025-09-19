@@ -109,3 +109,15 @@ body { margin: 0; background: radial-gradient(1000px 600px at 20% 0, #0e1424, #0
 
 /* Make SVG opening animation scale like the video */
 .overlay object { width: 60vw; max-width: 720px; height: auto; border-radius: 16px; box-shadow: var(--shadow-neon); }
+
+/* Sidebar icon badge for Notifications */
+.icon-wrap { position: relative; }
+.badge {
+  position: absolute; top: -6px; right: -6px;
+  height: 16px; min-width: 16px; padding: 0 5px;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--accent-3), var(--accent-1));
+  color: #001015; font-weight: 800; font-size: 10px; line-height: 1;
+  border-radius: 999px; border: 1px solid var(--border);
+  box-shadow: var(--shadow-neon);
+}

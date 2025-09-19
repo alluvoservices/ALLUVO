@@ -6,7 +6,7 @@ export default function OpeningVideo({ onEnd }) {
   const [hide, setHide] = useState(false);
 
   // How long to keep the SVG intro visible (ms) before auto-hiding
-  const DURATION_MS = 3200;
+  const DURATION_MS = 1200;
 
   useEffect(() => {
     // Check if opening.svg exists; if not, fall back to MP4 and auto-hide on error
