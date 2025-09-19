@@ -121,3 +121,12 @@ body { margin: 0; background: radial-gradient(1000px 600px at 20% 0, #0e1424, #0
   border-radius: 999px; border: 1px solid var(--border);
   box-shadow: var(--shadow-neon);
 }
+
+/* Fix: make all links inherit color and remove underline, including visited state */
+a, a:visited { color: inherit; text-decoration: none; }
+
+/* Make sure sidebar items keep nav look even when visited */
+.sidebar .item, .sidebar .item:visited {
+  color: var(--text);
+  text-decoration: none;
+}

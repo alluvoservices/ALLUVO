@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  UserCircle2, Search, Clapperboard, UtensilsCrossed,
+  Search, Clapperboard, UtensilsCrossed,
   MessagesSquare, Ticket, Gamepad2, Bell, Settings, LogIn
 } from "lucide-react";
 import api from "../utils/api";
@@ -23,7 +23,7 @@ export default function Sidebar() {
 
   const [unread, setUnread] = useState(0);
 
-  // Fetch unread notification count (once on mount + every 60s)
+  // Fetch unread notifications once and every 60s
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -34,9 +34,7 @@ export default function Sidebar() {
         });
         const n = (data.items || []).filter(x => !x.read).length;
         setUnread(n);
-      } catch (e) {
-        // ignore
-      }
+      } catch {}
     };
     load();
     const id = setInterval(load, 60000);
@@ -64,11 +62,12 @@ export default function Sidebar() {
         <Item to="/playzone" icon={Gamepad2} label="Playzone" />
       </nav>
 
-      <div className="sidebar-bottom">
+      {/* Bottom nav gets the same styling */}
+      <nav className="sidebar-bottom nav">
         <Item to="/notifications" icon={Bell} label="Notifications" badge={unread} />
         <Item to="/settings" icon={Settings} label="Settings" />
         <Item to="/login" icon={LogIn} label="Login" />
-      </div>
+      </nav>
     </aside>
   );
 }
