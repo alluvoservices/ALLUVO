@@ -19,6 +19,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 const TMDB = process.env.TMDB_API_KEY || "";
 const ORIGIN = process.env.CORS_ORIGIN || "*";
 const whitelist = ORIGIN.split(",").map(o => o.trim());
+const DEMO_LOGIN = String(process.env.DEMO_LOGIN || "").toLowerCase() === "true";
+const DEMO_CODE = process.env.DEMO_CODE || "";
 
 // CORS (Express)
 app.use(cors({
@@ -41,22 +43,14 @@ const io = new Server(httpServer, {
   }
 });
 
-// In-memory stores (demo)
-const otpStore = new Map(); // key -> { code, expiresAt }
-const OTP_TTL_MS = 5 * 60 * 1000;
-
+// In-memory demo stores
 const profilesByUser = new Map(); // userId -> [{id,name,avatar,kids}]
 const activeProfileByUser = new Map(); // userId -> profileId
+const notificationsByUser = new Map(); // userId -> array
 const MAX_PROFILES = 4;
-
-const notificationsByUser = new Map(); // userId -> array of {id,title,body,read,ts}
 const makeId = () => Math.random().toString(36).slice(2, 10);
 
-// Email & SMS clients (optional)
-let smsClient = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-  smsClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-}
+// SMTP (email OTP)
 let mailer = null;
 if (process.env.SMTP_HOST) {
   mailer = nodemailer.createTransport({
@@ -66,6 +60,17 @@ if (process.env.SMTP_HOST) {
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
   });
 }
+
+// Twilio (Verify SMS optional)
+let smsClient = null;
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+  smsClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+}
+const VERIFY_SID = process.env.TWILIO_VERIFY_SID || "";
+
+// OTP fallback store (when not using Verify or for email)
+const otpStore = new Map(); // key -> { code, expiresAt }
+const OTP_TTL_MS = 5 * 60 * 1000;
 
 // Helpers
 const makeOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -97,22 +102,26 @@ function auth(req, res, next) {
   }
 }
 
-// OTP endpoints
+// Rate limit for requesting OTP
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
 app.use("/api/auth/request-otp", limiter);
 
+// Send OTP via Verify (phone) or SMTP (email); dev prints
 async function sendOtp({ phone, email, code }) {
   if (phone) {
+    if (smsClient && VERIFY_SID) {
+      await smsClient.verify.v2.services(VERIFY_SID).verifications.create({ to: phone, channel: "sms" });
+      return { via: "sms-verify" };
+    }
     if (smsClient && process.env.TWILIO_PHONE) {
       await smsClient.messages.create({
         to: phone, from: process.env.TWILIO_PHONE,
         body: `Your ALLUVO login code is ${code}. Expires in 5 minutes.`
       });
       return { via: "sms" };
-    } else {
-      console.log("[DEV SMS OTP]", phone, code);
-      return { via: "sms-dev" };
     }
+    console.log("[DEV SMS OTP]", phone, code);
+    return { via: "sms-dev" };
   }
   if (email) {
     if (mailer) {
@@ -120,18 +129,18 @@ async function sendOtp({ phone, email, code }) {
         to: email,
         from: process.env.FROM_EMAIL || process.env.SMTP_USER,
         subject: "ALLUVO OTP",
-        text: `Your ALLUVO login code is ${code}. Expires in 5 min.`,
-        html: `<p>Your ALLUVO login code is <b>${code}</b>. Expires in 5 min.</p>`
+        text: `Your ALLUVO login code is ${code}. Expires in 5 minutes.`,
+        html: `<p>Your ALLUVO login code is <b>${code}</b>. Expires in 5 minutes.</p>`
       });
       return { via: "email" };
-    } else {
-      console.log("[DEV EMAIL OTP]", email, code);
-      return { via: "email-dev" };
     }
+    console.log("[DEV EMAIL OTP]", email, code);
+    return { via: "email-dev" };
   }
   throw new Error("No phone or email provided");
 }
 
+// Auth endpoints
 app.post("/api/auth/request-otp", async (req, res) => {
   const phone = req.body.phone?.trim();
   const email = req.body.email?.trim()?.toLowerCase();
@@ -139,8 +148,11 @@ app.post("/api/auth/request-otp", async (req, res) => {
 
   const key = keyFor({ phone, email });
   const code = makeOTP();
-  otpStore.set(key, { code, expiresAt: Date.now() + OTP_TTL_MS });
-  setTimeout(() => otpStore.delete(key), OTP_TTL_MS + 1000);
+
+  if (!phone || !VERIFY_SID) {
+    otpStore.set(key, { code, expiresAt: Date.now() + OTP_TTL_MS });
+    setTimeout(() => otpStore.delete(key), OTP_TTL_MS + 1000);
+  }
 
   try {
     const info = await sendOtp({ phone, email, code });
@@ -151,22 +163,31 @@ app.post("/api/auth/request-otp", async (req, res) => {
   }
 });
 
-app.post("/api/auth/verify-otp", (req, res) => {
+app.post("/api/auth/verify-otp", async (req, res) => {
   const phone = req.body.phone?.trim();
   const email = req.body.email?.trim()?.toLowerCase();
   const code = String(req.body.code || "");
   const key = keyFor({ phone, email });
-
   if (!key || !code) return res.status(400).json({ error: "Missing data" });
-  const record = otpStore.get(key);
-  if (!record) return res.status(400).json({ error: "OTP not found or expired" });
-  if (Date.now() > record.expiresAt) {
-    otpStore.delete(key);
-    return res.status(400).json({ error: "OTP expired" });
-  }
-  if (record.code !== code) return res.status(400).json({ error: "Invalid code" });
 
-  otpStore.delete(key);
+  if (phone && smsClient && VERIFY_SID) {
+    try {
+      const check = await smsClient.verify.v2.services(VERIFY_SID).verificationChecks.create({ to: phone, code });
+      if (check.status !== "approved") return res.status(400).json({ error: "Invalid code" });
+    } catch {
+      return res.status(400).json({ error: "Invalid or expired code" });
+    }
+  } else {
+    const record = otpStore.get(key);
+    if (!record) return res.status(400).json({ error: "OTP not found or expired" });
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(key);
+      return res.status(400).json({ error: "OTP expired" });
+    }
+    if (record.code !== code) return res.status(400).json({ error: "Invalid code" });
+    otpStore.delete(key);
+  }
+
   ensureUser(key);
   const token = jwt.sign({ sub: key }, JWT_SECRET, { expiresIn: "7d" });
   res.json({
@@ -177,17 +198,42 @@ app.post("/api/auth/verify-otp", (req, res) => {
   });
 });
 
-// Profiles API (max 5)
+// DEMO LOGIN (no OTP)
+app.post("/api/auth/demo", (req, res) => {
+  if (!DEMO_LOGIN) return res.status(403).json({ error: "Demo login disabled" });
+  if (DEMO_CODE && req.body?.code !== DEMO_CODE) return res.status(403).json({ error: "Invalid demo code" });
+
+  const userId = "demo@alluvo.local";
+  ensureUser(userId);
+
+  // Ensure 4 demo profiles
+  const defaults = ["KIDS", "Profile 2", "Profile 3", "Profile 4"];
+  const list = profilesByUser.get(userId);
+  for (let i = 0; i < defaults.length; i++) {
+    if (!list[i]) list[i] = { id: makeId(), name: defaults[i], avatar: null, kids: i === 0 };
+  }
+  profilesByUser.set(userId, list.slice(0, MAX_PROFILES));
+  activeProfileByUser.set(userId, list[3].id); // highlight Profile 4 by default
+
+  const token = jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: "7d" });
+  res.json({
+    token,
+    user: { id: userId },
+    profiles: profilesByUser.get(userId),
+    activeId: activeProfileByUser.get(userId)
+  });
+});
+
+// Profiles API (max 4)
 app.get("/api/profiles", auth, (req, res) => {
   res.json({ profiles: profilesByUser.get(req.userId) || [], activeId: activeProfileByUser.get(req.userId) || null });
 });
 app.post("/api/profiles", auth, (req, res) => {
   const list = profilesByUser.get(req.userId) || [];
-  if (list.length >= MAX_PROFILES) return res.status(400).json({ error: "Max 5 profiles" });
+  if (list.length >= MAX_PROFILES) return res.status(400).json({ error: "Max 4 profiles" });
   const name = (req.body?.name || `Profile ${list.length + 1}`).slice(0, 30);
   const p = { id: makeId(), name, avatar: null, kids: !!req.body?.kids };
-  list.push(p);
-  profilesByUser.set(req.userId, list);
+  list.push(p); profilesByUser.set(req.userId, list);
   res.json({ profile: p });
 });
 app.put("/api/profiles/:id", auth, (req, res) => {
@@ -217,7 +263,7 @@ app.post("/api/profiles/:id/activate", auth, (req, res) => {
   res.json({ activeId: p.id });
 });
 
-// Notifications
+// Notifications (simple)
 app.get("/api/notifications", auth, (req, res) => {
   res.json({ items: (notificationsByUser.get(req.userId) || []).sort((a,b)=>b.ts-a.ts) });
 });
@@ -234,7 +280,7 @@ app.delete("/api/notifications/read", auth, (req, res) => {
   res.json({ ok: true });
 });
 
-// TMDB helpers
+// TMDB helpers (work if TMDB_API_KEY provided)
 const TMDB_BASE = "https://api.themoviedb.org/3";
 async function tmdb(path, params = {}) {
   if (!TMDB) return { results: [] };
@@ -248,55 +294,29 @@ function poster(urlPath, size = "w500") {
   return urlPath ? `https://image.tmdb.org/t/p/${size}${urlPath}` : null;
 }
 
-// Stream
+// Movies
 app.get("/api/movies/trending", async (req, res) => {
   try {
     const data = await tmdb("/trending/movie/week", { language: "en-IN" });
-    const items = (data.results || []).map(m => ({
-      id: m.id, title: m.title, rating: m.vote_average, overview: m.overview,
-      poster: poster(m.poster_path)
-    }));
+    const items = (data.results || []).map(m => ({ id: m.id, title: m.title, rating: m.vote_average, overview: m.overview, poster: poster(m.poster_path) }));
     res.json({ items });
-  } catch (e) {
-    res.json({ items: [] });
-  }
+  } catch { res.json({ items: [] }); }
 });
 app.get("/api/movies/search", async (req, res) => {
   const q = String(req.query.q || "").trim();
   if (!q) return res.json({ items: [] });
   try {
     const data = await tmdb("/search/movie", { query: q, language: "en-IN" });
-    const items = (data.results || []).slice(0, 20).map(m => ({
-      id: m.id, title: m.title, rating: m.vote_average, overview: m.overview, poster: poster(m.poster_path)
-    }));
+    const items = (data.results || []).slice(0, 20).map(m => ({ id: m.id, title: m.title, rating: m.vote_average, overview: m.overview, poster: poster(m.poster_path) }));
     res.json({ items });
-  } catch {
-    res.json({ items: [] });
-  }
+  } catch { res.json({ items: [] }); }
 });
 app.get("/api/movies/:id", async (req, res) => {
   try {
     const m = await tmdb(`/movie/${req.params.id}`, { language: "en-IN" });
-    res.json({
-      id: m.id, title: m.title, rating: m.vote_average, overview: m.overview,
-      poster: poster(m.poster_path), backdrop: poster(m.backdrop_path, "w1280")
-    });
-  } catch {
-    res.status(404).json({ error: "Not found" });
-  }
+    res.json({ id: m.id, title: m.title, rating: m.vote_average, overview: m.overview, poster: poster(m.poster_path), backdrop: poster(m.backdrop_path, "w1280") });
+  } catch { res.status(404).json({ error: "Not found" }); }
 });
-app.get("/api/movies/:id/providers", async (req, res) => {
-  try {
-    const p = await tmdb(`/movie/${req.params.id}/watch/providers`);
-    const inProviders = p.results?.IN?.flatrate || [];
-    const names = inProviders.map(x => x.provider_name);
-    res.json({ providers: names });
-  } catch {
-    res.json({ providers: [] });
-  }
-});
-
-// Provider helper: open provider search page (fallback)
 function providerSearchUrl(provider, title) {
   const q = encodeURIComponent(title);
   const map = {
@@ -307,28 +327,21 @@ function providerSearchUrl(provider, title) {
     "JioCinema": `https://www.jiocinema.com/search/${q}`,
     "ZEE5": `https://www.zee5.com/search?q=${q}`,
     "aha": `https://www.aha.video/search?query=${q}`,
-    "Discovery Plus": `https://www.discoveryplus.in/search?q=${q}`,
-    "Eros Now": `https://erosnow.com/search?q=${q}`
+    "Discovery Plus": `https://www.discoveryplus.in/search?q=${q}`
   };
   return map[provider] || `https://www.google.com/search?q=${encodeURIComponent(provider + " " + title)}`;
 }
 app.get("/api/movies/:id/open", async (req, res) => {
-  // returns best guess provider links for front-end to show buttons
   try {
     const m = await tmdb(`/movie/${req.params.id}`, { language: "en-IN" });
     const p = await tmdb(`/movie/${req.params.id}/watch/providers`);
     const inProviders = p.results?.IN?.flatrate || [];
-    const links = inProviders.map(x => ({
-      provider: x.provider_name,
-      url: providerSearchUrl(x.provider_name, m.title)
-    }));
+    const links = inProviders.map(x => ({ provider: x.provider_name, url: providerSearchUrl(x.provider_name, m.title) }));
     res.json({ title: m.title, links });
-  } catch {
-    res.json({ title: "", links: [] });
-  }
+  } catch { res.json({ title: "", links: [] }); }
 });
 
-// Food (sample data + EatSure redirect)
+// Food + Tickets + Global search kept same as earlier
 const FOODS = [
   { id: "f1", name: "Chicken Biryani", type: "non-veg", img: "https://images.unsplash.com/photo-1601050690597-9f7a27f2d2cc?w=600&q=60" },
   { id: "f2", name: "Veg Biryani", type: "veg", img: "https://images.unsplash.com/photo-1604908176997-431f9f675e3e?w=600&q=60" },
@@ -345,17 +358,11 @@ app.get("/api/food/search", (req, res) => {
   items = items.map(i => ({ ...i, link: `https://www.eatsure.com/search?q=${encodeURIComponent(i.name)}` }));
   res.json({ items });
 });
-
-// Tickets (BookMyShow redirect)
 app.get("/api/tickets/search", (req, res) => {
   const q = String(req.query.q || "").trim();
   const city = (req.query.city || "hyderabad").toLowerCase().replace(/\s+/g, "-");
-  res.json({
-    items: q ? [{ id: "t-" + makeId(), title: q, link: `https://in.bookmyshow.com/explore/movies-${city}?query=${encodeURIComponent(q)}` }] : []
-  });
+  res.json({ items: q ? [{ id: "t-" + makeId(), title: q, link: `https://in.bookmyshow.com/explore/movies-${city}?query=${encodeURIComponent(q)}` }] : [] });
 });
-
-// Global search (movies + food + tickets)
 app.get("/api/search", async (req, res) => {
   const q = String(req.query.q || "").trim();
   if (!q) return res.json({ movies: [], food: [], tickets: [] });
@@ -366,36 +373,16 @@ app.get("/api/search", async (req, res) => {
       Promise.resolve([{ id: "bms", title: q, link: `https://in.bookmyshow.com/explore/movies-hyderabad?query=${encodeURIComponent(q)}` }])
     ]);
     res.json({ movies, food, tickets });
-  } catch {
-    res.json({ movies: [], food: [], tickets: [] });
-  }
+  } catch { res.json({ movies: [], food: [], tickets: [] }); }
 });
 
-// Socket.io chat (server only relays encrypted payloads)
+// Socket.io chat relay
 io.on("connection", (socket) => {
-  socket.on("join", (room) => {
-    socket.join(room);
-  });
+  socket.on("join", (room) => socket.join(room));
   socket.on("message", ({ room, ciphertext, meta }) => {
     io.to(room).emit("message", { ciphertext, meta, ts: Date.now() });
   });
 });
-
-// Simple scheduled notifications (trending movie ping) every 6h
-async function notifyTrending() {
-  try {
-    const data = await tmdb("/trending/movie/day", { language: "en-IN" });
-    const top = data.results?.[0];
-    if (!top) return;
-    for (const [userId, list] of notificationsByUser.entries()) {
-      list.push({
-        id: makeId(), title: "New trending movie", body: top.title, read: false, ts: Date.now()
-      });
-      notificationsByUser.set(userId, list.slice(-50));
-    }
-  } catch {}
-}
-setInterval(notifyTrending, 6 * 60 * 60 * 1000);
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
