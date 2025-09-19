@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  Search, Clapperboard, UtensilsCrossed,
-  MessagesSquare, Ticket, Gamepad2, Bell, Settings, LogIn
+  Search as SearchIcon,
+  Clapperboard as ClapperIcon,
+  UtensilsCrossed as FoodIcon,
+  MessagesSquare as ChatIcon,
+  Ticket as TicketIcon,
+  Gamepad2 as GameIcon,
+  Bell as BellIcon,
+  Settings as SettingsIcon,
+  LogIn as LoginIcon
 } from "lucide-react";
 import api from "../utils/api";
 
 const Item = ({ to, icon: IconComp, label, badge }) => (
   <NavLink className="item" to={to}>
     <span className="icon-wrap">
-      {typeof IconComp === "function" ? <IconComp size={20} strokeWidth={2} /> : IconComp}
+      <IconComp size={20} strokeWidth={2} />
       {badge > 0 && <span className="badge">{badge > 9 ? "9+" : badge}</span>}
     </span>
     <span className="label">{label}</span>
@@ -23,7 +30,6 @@ export default function Sidebar() {
 
   const [unread, setUnread] = useState(0);
 
-  // Fetch unread notifications once and every 60s
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -53,20 +59,25 @@ export default function Sidebar() {
       </div>
 
       <nav className="nav">
-        <Item to="/profiles" icon={() => <div className="avatar-mini">{initial}</div>} label="Profile" />
-        <Item to="/search" icon={Search} label="Search" />
-        <Item to="/stream" icon={Clapperboard} label="Stream" />
-        <Item to="/order" icon={UtensilsCrossed} label="Order" />
-        <Item to="/friends" icon={MessagesSquare} label="Friends" />
-        <Item to="/tickets" icon={Ticket} label="Tickets" />
-        <Item to="/playzone" icon={Gamepad2} label="Playzone" />
+        <NavLink className="item" to="/profiles">
+          <span className="icon-wrap">
+            <div className="avatar-mini">{initial}</div>
+          </span>
+          <span className="label">Profile</span>
+        </NavLink>
+        <Item to="/search" icon={SearchIcon} label="Search" />
+        <Item to="/stream" icon={ClapperIcon} label="Stream" />
+        <Item to="/order" icon={FoodIcon} label="Order" />
+        <Item to="/friends" icon={ChatIcon} label="Friends" />
+        <Item to="/tickets" icon={TicketIcon} label="Tickets" />
+        <Item to="/playzone" icon={GameIcon} label="Playzone" />
       </nav>
 
-      {/* Bottom nav gets the same styling */}
+      {/* Bottom section uses the same .nav and .item styling */}
       <nav className="sidebar-bottom nav">
-        <Item to="/notifications" icon={Bell} label="Notifications" badge={unread} />
-        <Item to="/settings" icon={Settings} label="Settings" />
-        <Item to="/login" icon={LogIn} label="Login" />
+        <Item to="/notifications" icon={BellIcon} label="Notifications" badge={unread} />
+        <Item to="/settings" icon={SettingsIcon} label="Settings" />
+        <Item to="/login" icon={LoginIcon} label="Login" />
       </nav>
     </aside>
   );

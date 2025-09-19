@@ -130,3 +130,18 @@ a, a:visited { color: inherit; text-decoration: none; }
   color: var(--text);
   text-decoration: none;
 }
+
+/* Make link states consistent across the app */
+a, a:link, a:visited, a:hover, a:active {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Sidebar items must always look like nav items (even when visited) */
+.sidebar .item, .sidebar .item:visited {
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* Ensure main stays above page background */
+.main { position: relative; z-index: 1; }
