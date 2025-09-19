@@ -145,3 +145,53 @@ a, a:link, a:visited, a:hover, a:active {
 
 /* Ensure main stays above page background */
 .main { position: relative; z-index: 1; }
+
+/* Profiles new hero */
+.profiles-wrap { padding: 8px 10px; }
+.profiles-hero { text-align: center; margin: 16px 0 10px; }
+.hero-brand {
+  font-family: var(--font-accent);
+  font-size: 56px; font-weight: 700;
+  letter-spacing: 0.6px;
+  background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-sub { color: #b6c6ff; font-size: 18px; margin-top: -4px; }
+
+.profiles-grid-2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  gap: 26px;
+  justify-items: center;
+  padding: 10px 6px;
+}
+.p-tile { text-align: center; position: relative; }
+.p-tile.active .p-title { text-shadow: 0 0 14px color-mix(in srgb, var(--accent-2) 40%, transparent); }
+.avatar-xxl {
+  width: 180px; height: 180px; border-radius: 50%; border: none; cursor: pointer;
+  display: grid; place-items: center;
+  background: var(--gradient); color: #001015;
+  box-shadow: var(--shadow-neon);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.avatar-xxl:hover { transform: translateY(-2px); }
+.avatar-xxl span { font-size: 64px; font-weight: 800; }
+.avatar-xxl.plus { background: #0f172a; border: 1px dashed #2b3c66; color: #cfe0ff; }
+.avatar-xxl.ring { outline: 4px solid color-mix(in srgb, var(--accent-2) 50%, transparent); }
+
+.p-title { margin-top: 12px; font-size: 28px; font-weight: 800; letter-spacing: .4px; }
+.p-title.muted { color: #a7b4d2; font-weight: 700; }
+
+.p-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 6px; }
+.chip {
+  display: inline-grid; place-items: center;
+  height: 28px; width: 28px; border-radius: 999px; border: 1px solid #2b3c66;
+  background: #0e1526cc; color: #e7eeff; cursor: pointer;
+}
+.chip.ghost { }
+.chip.danger { background: #ff5a7a; border-color: #ff5a7a; color: #fff; }
+
+.profiles-footer { display: grid; place-items: center; margin-top: 8px; }
+
+/* Inline logo next to Profile label in sidebar */
+.label-inline { display: inline-flex; align-items: center; gap: 8px; }
+.inline-logo { width: 16px; height: 16px; display: inline-block; }

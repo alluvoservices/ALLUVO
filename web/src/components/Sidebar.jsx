@@ -26,10 +26,11 @@ const Item = ({ to, icon: IconComp, label, badge }) => (
 export default function Sidebar() {
   const base = import.meta.env.BASE_URL || "/";
   const active = JSON.parse(localStorage.getItem("activeProfile") || "null");
-  const initial = (active?.name?.[0] || "P").toUpperCase();
-
+  const index = Number(localStorage.getItem("activeProfileIndex") || ""); // 1..4
+  const activeLabel = index ? `Profile ${index}` : (active?.name ? active.name : "Profile");
   const [unread, setUnread] = useState(0);
 
+  // Notifications count
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -60,11 +61,21 @@ export default function Sidebar() {
 
       <nav className="nav">
         <NavLink className="item" to="/profiles">
-          <span className="icon-wrap">
-            <div className="avatar-mini">{initial}</div>
+          <span className="icon-wrap"><div className="avatar-mini">{(active?.name?.[0] || 'P').toUpperCase()}</div></span>
+          <span className="label">
+            <span className="label-inline">
+              {/* Logo beside "Profile" text */}
+              <img
+                src={`${base}logo.svg`}
+                alt=""
+                className="inline-logo"
+                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${base}logo.jpg`; }}
+              />
+              {activeLabel}
+            </span>
           </span>
-          <span className="label">Profile</span>
         </NavLink>
+
         <Item to="/search" icon={SearchIcon} label="Search" />
         <Item to="/stream" icon={ClapperIcon} label="Stream" />
         <Item to="/order" icon={FoodIcon} label="Order" />
@@ -73,7 +84,6 @@ export default function Sidebar() {
         <Item to="/playzone" icon={GameIcon} label="Playzone" />
       </nav>
 
-      {/* Bottom section uses the same .nav and .item styling */}
       <nav className="sidebar-bottom nav">
         <Item to="/notifications" icon={BellIcon} label="Notifications" badge={unread} />
         <Item to="/settings" icon={SettingsIcon} label="Settings" />

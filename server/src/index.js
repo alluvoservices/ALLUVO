@@ -47,7 +47,7 @@ const OTP_TTL_MS = 5 * 60 * 1000;
 
 const profilesByUser = new Map(); // userId -> [{id,name,avatar,kids}]
 const activeProfileByUser = new Map(); // userId -> profileId
-const MAX_PROFILES = 5;
+const MAX_PROFILES = 4;
 
 const notificationsByUser = new Map(); // userId -> array of {id,title,body,read,ts}
 const makeId = () => Math.random().toString(36).slice(2, 10);
