@@ -195,3 +195,27 @@ a, a:link, a:visited, a:hover, a:active {
 /* Inline logo next to Profile label in sidebar */
 .label-inline { display: inline-flex; align-items: center; gap: 8px; }
 .inline-logo { width: 16px; height: 16px; display: inline-block; }
+
+/* --- Single-color palettes (override) --- */
+
+/* Default + Cinematic Blue */
+:root,
+:root[data-theme="cinematic-blue"] {
+  /* Accents derived from Cinematic Blue */
+  --accent-1: #1F8CFF; /* base */
+  --accent-2: #58ADFF; /* lighter */
+  --accent-3: #0D5ECC; /* darker */
+  --gradient: linear-gradient(120deg, var(--accent-1), var(--accent-2), var(--accent-3));
+  --shadow-neon: 0 0 10px color-mix(in srgb, var(--accent-1) 35%, transparent), 0 0 24px color-mix(in srgb, var(--accent-3) 30%, transparent);
+  --ring: color-mix(in srgb, var(--accent-1) 40%, transparent);
+}
+
+/* Sports Orange */
+:root[data-theme="sports-orange"] {
+  --accent-1: #FF7A1A; /* base */
+  --accent-2: #FFAA52; /* lighter */
+  --accent-3: #D85A00; /* darker */
+  --gradient: linear-gradient(120deg, var(--accent-1), var(--accent-2), var(--accent-3));
+  --shadow-neon: 0 0 10px color-mix(in srgb, var(--accent-1) 35%, transparent), 0 0 24px color-mix(in srgb, var(--accent-3) 30%, transparent);
+  --ring: color-mix(in srgb, var(--accent-1) 40%, transparent);
+}
