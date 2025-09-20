@@ -239,3 +239,46 @@ a, a:link, a:visited, a:hover, a:active {
 
 /* Error text color tuned to theme */
 .error-text { color: #ff7a7a; }
+
+/* Tabs contrast fix */
+.tab {
+  background: #101a33;
+  border: 1px solid #223053;
+  color: #dbe7ff;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.tab:hover { filter: brightness(1.08); }
+.tab.active {
+  background: var(--gradient);
+  color: #08121e;
+  border: none;
+  box-shadow: var(--shadow-neon);
+}
+
+/* Theme-aware login text */
+.login-title { color: var(--text); margin: 8px 0; }
+.login-sub { color: var(--muted); }
+
+/* Inputs and placeholders */
+.input {
+  color: var(--text);
+  border: 1px solid #223053;
+  background: #0f172a;
+}
+.input::placeholder { color: var(--muted); }
+.input:focus { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 40%, transparent); }
+
+/* Password eye toggle */
+.input-wrap { position: relative; width: 100%; }
+.input-wrap .input { width: 100%; padding-right: 44px; }
+.eye-btn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 4px;
+}
+.eye-btn:hover { color: var(--text); }
+
+/* Error color */
+.error-text { color: #ff7a7a; font-weight: 600; }
