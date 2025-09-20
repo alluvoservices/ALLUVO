@@ -26,19 +26,15 @@ const Item = ({ to, icon: IconComp, label, badge }) => (
 export default function Sidebar() {
   const base = import.meta.env.BASE_URL || "/";
   const active = JSON.parse(localStorage.getItem("activeProfile") || "null");
-  const index = Number(localStorage.getItem("activeProfileIndex") || ""); // 1..4
-  const activeLabel = index ? `Profile ${index}` : (active?.name ? active.name : "Profile");
+  const initials = (active?.name?.[0] || "P").toUpperCase();
   const [unread, setUnread] = useState(0);
 
-  // Notifications count
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
     const load = async () => {
       try {
-        const { data } = await api.get("/api/notifications", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const { data } = await api.get("/api/notifications", { headers: { Authorization: `Bearer ${token}` } });
         const n = (data.items || []).filter(x => !x.read).length;
         setUnread(n);
       } catch {}
@@ -61,19 +57,13 @@ export default function Sidebar() {
 
       <nav className="nav">
         <NavLink className="item" to="/profiles">
-          <span className="icon-wrap"><div className="avatar-mini">{(active?.name?.[0] || 'P').toUpperCase()}</div></span>
-          <span className="label">
-            <span className="label-inline">
-              {/* Logo beside "Profile" text */}
-              <img
-                src={`${base}logo.svg`}
-                alt=""
-                className="inline-logo"
-                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${base}logo.jpg`; }}
-              />
-              {activeLabel}
-            </span>
+          <span className="icon-wrap">
+            {active?.avatar
+              ? <span className="avatar-mini img" style={{ backgroundImage: `url(${active.avatar})` }} />
+              : <div className="avatar-mini">{initials}</div>
+            }
           </span>
+          <span className="label">Profile</span>
         </NavLink>
 
         <Item to="/search" icon={SearchIcon} label="Search" />

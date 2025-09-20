@@ -282,3 +282,29 @@ a, a:link, a:visited, a:hover, a:active {
 
 /* Error color */
 .error-text { color: #ff7a7a; font-weight: 600; }
+
+/* Avatar picker modal */
+.panel.picker { width: min(780px, 94vw); }
+.picker-grid {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  margin-top: 8px;
+}
+.picker-cell {
+  background: #0e1526cc; border: 1px solid var(--border);
+  border-radius: 12px; height: 96px; display: grid; place-items: center; cursor: pointer;
+}
+.picker-cell:hover { box-shadow: var(--shadow-neon); transform: translateY(-1px); }
+.picker-cell img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
+.picker-cell.broken::after { content: "N/A"; color: #9fb0cc; font-size: 12px; }
+.picker-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+/* Avatar image in the big round button */
+.avatar-xxl-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+/* Sidebar mini avatar image */
+.avatar-mini.img {
+  width: 24px; height: 24px; border-radius: 50%;
+  background-size: cover; background-position: center;
+  box-shadow: var(--shadow-neon);
+}
