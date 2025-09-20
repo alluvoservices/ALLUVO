@@ -1,4 +1,5 @@
 import React from "react";
+import { clearAuthSession } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
 
 const themes = [

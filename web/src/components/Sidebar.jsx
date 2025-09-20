@@ -13,8 +13,9 @@ import {
 } from "lucide-react";
 import api from "../utils/api";
 
-/* Subscribe to auth changes via localStorage token + custom event */
+// Subscribe to changes in auth state (token) across tabs and in the same tab
 function useAuthed() {
+  const get = () => !!localStorage.getItem("token");
   function subscribe(listener) {
     const h = () => listener();
     window.addEventListener("storage", h);
@@ -24,7 +25,6 @@ function useAuthed() {
       window.removeEventListener("auth-changed", h);
     };
   }
-  const get = () => !!localStorage.getItem("token");
   return useSyncExternalStore(subscribe, get, get);
 }
 
@@ -40,22 +40,20 @@ const Item = ({ to, icon: IconComp, label, badge }) => (
 
 export default function Sidebar() {
   const base = import.meta.env.BASE_URL || "/";
+  const authed = useAuthed();
 
+  // Read profile fresh on every render so it reflects login/logout immediately
   const active = JSON.parse(localStorage.getItem("activeProfile") || "null");
   const initials = (active?.name?.[0] || "P").toUpperCase();
 
-  const authed = useAuthed();
-
-  // Notifications badge (only when authed)
+  // Notifications only when authed
   const [unread, setUnread] = useState(0);
   useEffect(() => {
     if (!authed) return;
     const token = localStorage.getItem("token");
     const load = async () => {
       try {
-        const { data } = await api.get("/api/notifications", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const { data } = await api.get("/api/notifications", { headers: { Authorization: `Bearer ${token}` } });
         setUnread((data.items || []).filter(x => !x.read).length);
       } catch {}
     };
@@ -84,7 +82,6 @@ export default function Sidebar() {
           </span>
           <span className="label">Profile</span>
         </NavLink>
-
         <Item to="/search" icon={SearchIcon} label="Search" />
         <Item to="/stream" icon={ClapperIcon} label="Stream" />
         <Item to="/order" icon={FoodIcon} label="Order" />
@@ -96,7 +93,6 @@ export default function Sidebar() {
       <nav className="sidebar-bottom nav">
         {authed && <Item to="/notifications" icon={BellIcon} label="Notifications" badge={unread} />}
         <Item to="/settings" icon={SettingsIcon} label="Settings" />
-        {/* Hide login whenever authed == true */}
         {!authed && <Item to="/login" icon={LoginIcon} label="Login" />}
       </nav>
     </aside>

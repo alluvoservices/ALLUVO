@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from "../utils/api";
+import { setAuthSession } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
 import { Eye, EyeOff } from "lucide-react";
