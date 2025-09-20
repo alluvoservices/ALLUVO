@@ -308,3 +308,17 @@ a, a:link, a:visited, a:hover, a:active {
   background-size: cover; background-position: center;
   box-shadow: var(--shadow-neon);
 }
+
+.textarea {
+  color: var(--text);
+  border: 1px solid #223053;
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+.textarea::placeholder { color: var(--muted); }
+.textarea:focus { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 40%, transparent); }
+
+.help { color: var(--muted); font-size: 12px; }
+.success-text { color: #a0f5c1; font-weight: 600; }

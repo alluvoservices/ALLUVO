@@ -419,6 +419,67 @@ io.on("connection", (socket) => {
   });
 });
 
+
+/* Feedback email (rate limited) */
+const feedbackLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
+app.use("/api/feedback", feedbackLimiter);
+
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const { name = "", email = "", subject = "", message = "", type = "General", rating } = req.body || {};
+    const trimmedMsg = String(message || "").trim();
+    if (!trimmedMsg || trimmedMsg.length < 10) return res.status(400).json({ error: "Please write at least 10 characters." });
+
+    const cleanSubject = String(subject || "Feedback").slice(0, 120);
+    const cleanName = String(name || "").slice(0, 80);
+    const cleanType = String(type || "General").slice(0, 40);
+    const cleanEmail = String(email || "").trim();
+    if (cleanEmail && !validator.isEmail(cleanEmail)) return res.status(400).json({ error: "Enter a valid contact email." });
+
+    if (!mailer) {
+      console.log("[Feedback received but SMTP not configured]:", { name: cleanName, email: cleanEmail, subject: cleanSubject, type: cleanType, rating, message: trimmedMsg.slice(0,400) });
+      return res.status(500).json({ error: "Email service not configured" });
+    }
+
+    const to = process.env.FEEDBACK_TO || "alluvohq@gmail.com";
+    const from = process.env.FROM_EMAIL || process.env.SMTP_USER || to;
+
+    const html = `
+      <h3>ALLUVO – New Feedback</h3>
+      <p><b>Type:</b> ${cleanType}</p>
+      ${rating ? '<p><b>Rating:</b> ' + rating + '/5</p>' : ''}
+      <p><b>Name:</b> ${cleanName || "(not provided)"}</p>
+      <p><b>Contact:</b> ${cleanEmail || "(not provided)"} </p>
+      <hr/>
+      <pre style="font-family: ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap;">${trimmedMsg}</pre>
+      <hr/>
+      <small>Sent from ALLUVO web app.</small>
+    `;
+    const text = [
+      "ALLUVO – New Feedback",
+      "Type: " + cleanType,
+      rating ? "Rating: " + rating + "/5" : "",
+      "Name: " + (cleanName || "(not provided)"),
+      "Contact: " + (cleanEmail || "(not provided)"),
+      "",
+      trimmedMsg
+    ].filter(Boolean).join("\n");
+
+    await mailer.sendMail({
+      to,
+      from,
+      replyTo: cleanEmail || undefined,
+      subject: `[ALLUVO Feedback] ${cleanSubject}`,
+      text,
+      html
+    });
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Unable to send feedback right now" });
+  }
+});
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
 httpServer.listen(PORT, () => {
