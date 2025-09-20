@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import api from "../utils/api";
 import { useNavigate } from "react-router-dom";
 import { parsePhoneNumberFromString } from "libphonenumber-js/min";
+import { Eye, EyeOff } from "lucide-react";
 
 const COUNTRIES = [
   { code: "IN", dial: "+91", label: "India (+91)" },
@@ -33,19 +34,32 @@ function strongPassword(pw) {
 
 export default function Login({ setGlobalLoading }) {
   const navigate = useNavigate();
-  const [mode, setMode] = useState("login"); // login | register | otp
+  const [mode, setMode] = useState("login"); // login | register | otp | otp-code
   const [country, setCountry] = useState("IN");
   const [id, setId] = useState(""); // email or phone
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
-  const [code, setCode] = useState(""); // for OTP
+  const [showPw, setShowPw] = useState(false);
+  const [showPw2, setShowPw2] = useState(false);
+  const [code, setCode] = useState(""); // OTP
   const [err, setErr] = useState("");
+
+  function onAuth(data) {
+    localStorage.setItem("token", data.token);
+    if (data.activeId && (data.profiles||[]).length) {
+      const p = (data.profiles||[]).find(x=>x.id===data.activeId) || data.profiles[0];
+      localStorage.setItem("activeProfile", JSON.stringify(p));
+      const idx = (data.profiles||[]).findIndex(x=>x.id===data.activeId);
+      if (idx>=0) localStorage.setItem("activeProfileIndex", String(idx+1));
+    }
+    navigate("/profiles");
+  }
 
   async function doRegister(e) {
     e.preventDefault(); setErr("");
     const norm = normalizeIdentifier(id, country);
     if (!norm.ok) return setErr(norm.error);
-    if (!strongPassword(pw)) return setErr("Password must be 8–18 chars incl. upper, lower, number, symbol");
+    if (!strongPassword(pw)) return setErr("Password: 8–18 chars with upper, lower, number, symbol");
     if (pw !== pw2) return setErr("Passwords do not match");
     setGlobalLoading?.(true);
     try {
@@ -55,6 +69,7 @@ export default function Login({ setGlobalLoading }) {
       setErr(e.response?.data?.error || "Could not create account");
     } finally { setGlobalLoading?.(false); }
   }
+
   async function doLogin(e) {
     e.preventDefault(); setErr("");
     const norm = normalizeIdentifier(id, country);
@@ -68,6 +83,7 @@ export default function Login({ setGlobalLoading }) {
       setErr(e.response?.data?.error || "Invalid credentials");
     } finally { setGlobalLoading?.(false); }
   }
+
   async function requestOtp(e) {
     e.preventDefault(); setErr("");
     const norm = normalizeIdentifier(id, country);
@@ -81,6 +97,7 @@ export default function Login({ setGlobalLoading }) {
       setErr(e.response?.data?.error || "Failed to send OTP");
     } finally { setGlobalLoading?.(false); }
   }
+
   async function verifyOtp(e) {
     e.preventDefault(); setErr("");
     const norm = normalizeIdentifier(id, country);
@@ -95,6 +112,7 @@ export default function Login({ setGlobalLoading }) {
       setErr(e.response?.data?.error || "Invalid code");
     } finally { setGlobalLoading?.(false); }
   }
+
   async function demo() {
     setErr(""); setGlobalLoading?.(true);
     try {
@@ -105,27 +123,15 @@ export default function Login({ setGlobalLoading }) {
     } finally { setGlobalLoading?.(false); }
   }
 
-  function onAuth(data) {
-    localStorage.setItem("token", data.token);
-    if (data.activeId && (data.profiles||[]).length) {
-      const p = (data.profiles||[]).find(x=>x.id===data.activeId) || data.profiles[0];
-      localStorage.setItem("activeProfile", JSON.stringify(p));
-      const idx = (data.profiles||[]).findIndex(x=>x.id===data.activeId);
-      if (idx>=0) localStorage.setItem("activeProfileIndex", String(idx+1));
-    }
-    navigate("/profiles");
-  }
-
   const base = import.meta.env.BASE_URL || "/";
-  const input = { background: "#0a1326", border: "1px solid #1a2b4a", padding: "12px 14px", borderRadius: 12, color: "white", width:"100%" };
 
   return (
-    <div className="page" style={{ maxWidth: 540, margin: "0 auto" }}>
+    <div className="page" style={{ maxWidth: 560, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <img src={`${base}logo.svg`} width="78" style={{ borderRadius: 12, boxShadow: "0 0 18px #0ff5" }}
-             onError={(e)=>{e.currentTarget.onerror=null; e.currentTarget.src=`${base}logo.jpg`;}} />
-        <h2 style={{ marginBottom: 8 }}>Sign in to ALLUVO</h2>
-        <div style={{ color: "#9fb0cc" }}>Use email/phone + password, or OTP</div>
+        <img src={`${base}logo.svg`} width="78" onError={(e)=>{e.currentTarget.onerror=null; e.currentTarget.src=`${base}logo.jpg`;}}
+             style={{ borderRadius: 12, boxShadow: "0 0 18px #0ff5" }} />
+        <h2 className="login-title">Sign in to ALLUVO</h2>
+        <div className="login-sub">Use email/phone + password, or OTP</div>
       </div>
 
       {/* Tabs */}
@@ -135,10 +141,9 @@ export default function Login({ setGlobalLoading }) {
         <button className={"tab" + ((mode==="otp"||mode==="otp-code") ? " active" : "")} onClick={()=>setMode("otp")}>Use OTP</button>
       </div>
 
-      {/* Shared Email/Phone + Country row */}
+      {/* Shared Email/Phone + Country */}
       <div className="searchbar" style={{ alignItems:"center" }}>
-        <input className="input" placeholder="Email or phone number"
-               value={id} onChange={e=>setId(e.target.value)} />
+        <input className="input" placeholder="Email or phone number" value={id} onChange={e=>setId(e.target.value)} />
         <select className="input" style={{ maxWidth:160 }} value={country} onChange={e=>setCountry(e.target.value)}>
           {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
         </select>
@@ -146,37 +151,52 @@ export default function Login({ setGlobalLoading }) {
 
       {mode === "login" && (
         <form onSubmit={doLogin} style={{ display:"grid", gap:12 }}>
-          <input style={input} placeholder="Password" type="password" value={pw} onChange={e=>setPw(e.target.value)} />
+          <div className="input-wrap">
+            <input className="input" placeholder="Password" type={showPw ? "text" : "password"} value={pw} onChange={e=>setPw(e.target.value)} />
+            <button type="button" aria-label={showPw ? "Hide password" : "Show password"} className="eye-btn" onClick={()=>setShowPw(s=>!s)}>
+              {showPw ? <EyeOff size={18}/> : <Eye size={18}/>}
+            </button>
+          </div>
           <button className="btn" type="submit">Login</button>
-          {err && <div style={{ color: "#ff7a7a" }}>{err}</div>}
+          {err && <div className="error-text">{err}</div>}
         </form>
       )}
 
       {mode === "register" && (
         <form onSubmit={doRegister} style={{ display:"grid", gap:12 }}>
-          <input style={input} placeholder="Password (8–18, upper/lower/number/symbol)" type="password" value={pw} onChange={e=>setPw(e.target.value)} />
-          <input style={input} placeholder="Confirm password" type="password" value={pw2} onChange={e=>setPw2(e.target.value)} />
+          <div className="input-wrap">
+            <input className="input" placeholder="Password (8–18, upper/lower/number/symbol)" type={showPw ? "text" : "password"} value={pw} onChange={e=>setPw(e.target.value)} autoComplete="new-password" />
+            <button type="button" aria-label={showPw ? "Hide password" : "Show password"} className="eye-btn" onClick={()=>setShowPw(s=>!s)}>
+              {showPw ? <EyeOff size={18}/> : <Eye size={18}/>}
+            </button>
+          </div>
+          <div className="input-wrap">
+            <input className="input" placeholder="Confirm password" type={showPw2 ? "text" : "password"} value={pw2} onChange={e=>setPw2(e.target.value)} autoComplete="new-password" />
+            <button type="button" aria-label={showPw2 ? "Hide password" : "Show password"} className="eye-btn" onClick={()=>setShowPw2(s=>!s)}>
+              {showPw2 ? <EyeOff size={18}/> : <Eye size={18}/>}
+            </button>
+          </div>
           <button className="btn" type="submit">Create account</button>
-          {err && <div style={{ color: "#ff7a7a" }}>{err}</div>}
+          {err && <div className="error-text">{err}</div>}
         </form>
       )}
 
       {mode === "otp" && (
         <form onSubmit={requestOtp} style={{ display:"grid", gap:12 }}>
           <button className="btn" type="submit">Get OTP</button>
-          {err && <div style={{ color: "#ff7a7a" }}>{err}</div>}
+          {err && <div className="error-text">{err}</div>}
         </form>
       )}
 
       {mode === "otp-code" && (
         <form onSubmit={verifyOtp} style={{ display:"grid", gap:12 }}>
-          <input style={input} placeholder="Enter 6-digit OTP" value={code} onChange={e=>setCode(e.target.value)} maxLength={6}/>
+          <input className="input" placeholder="Enter 6-digit OTP" value={code} onChange={e=>setCode(e.target.value)} maxLength={6}/>
           <button className="btn" type="submit">Verify</button>
-          {err && <div style={{ color: "#ff7a7a" }}>{err}</div>}
+          {err && <div className="error-text">{err}</div>}
         </form>
       )}
 
-      <div style={{ marginTop: 14, textAlign: "center", color: "#9fb0cc" }}>— or —</div>
+      <div style={{ marginTop: 14, textAlign: "center" }} className="login-sub">— or —</div>
       <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
         <button className="btn ghost" type="button" onClick={demo}>Try Demo (no OTP)</button>
       </div>

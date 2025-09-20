@@ -219,3 +219,23 @@ a, a:link, a:visited, a:hover, a:active {
   --shadow-neon: 0 0 10px color-mix(in srgb, var(--accent-1) 35%, transparent), 0 0 24px color-mix(in srgb, var(--accent-3) 30%, transparent);
   --ring: color-mix(in srgb, var(--accent-1) 40%, transparent);
 }
+
+/* Login page theme-aware colors */
+.login-title { color: var(--text); margin: 8px 0; }
+.login-sub { color: var(--muted); }
+
+/* Inputs respect theme text and placeholder colors */
+.input { color: var(--text); caret-color: var(--accent-1); }
+.input::placeholder { color: var(--muted); }
+
+/* Show/Hide password toggle */
+.input-wrap { position: relative; width: 100%; }
+.input-wrap .input { width: 100%; padding-right: 44px; }
+.eye-btn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 4px;
+}
+.eye-btn:hover { color: var(--text); }
+
+/* Error text color tuned to theme */
+.error-text { color: #ff7a7a; }
