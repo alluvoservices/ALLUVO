@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Search as SearchIcon,
@@ -13,6 +13,21 @@ import {
 } from "lucide-react";
 import api from "../utils/api";
 
+/* Subscribe to auth changes via localStorage token + custom event */
+function useAuthed() {
+  function subscribe(listener) {
+    const h = () => listener();
+    window.addEventListener("storage", h);
+    window.addEventListener("auth-changed", h);
+    return () => {
+      window.removeEventListener("storage", h);
+      window.removeEventListener("auth-changed", h);
+    };
+  }
+  const get = () => !!localStorage.getItem("token");
+  return useSyncExternalStore(subscribe, get, get);
+}
+
 const Item = ({ to, icon: IconComp, label, badge }) => (
   <NavLink className="item" to={to}>
     <span className="icon-wrap">
@@ -25,25 +40,17 @@ const Item = ({ to, icon: IconComp, label, badge }) => (
 
 export default function Sidebar() {
   const base = import.meta.env.BASE_URL || "/";
+
   const active = JSON.parse(localStorage.getItem("activeProfile") || "null");
   const initials = (active?.name?.[0] || "P").toUpperCase();
 
-  // Track auth (token in localStorage) and update on login/logout
-  const [authed, setAuthed] = useState(!!localStorage.getItem("token"));
-  useEffect(() => {
-    const onChange = () => setAuthed(!!localStorage.getItem("token"));
-    window.addEventListener("storage", onChange);       // other tabs
-    window.addEventListener("auth-changed", onChange);  // same tab
-    return () => {
-      window.removeEventListener("storage", onChange);
-      window.removeEventListener("auth-changed", onChange);
-    };
-  }, []);
+  const authed = useAuthed();
 
+  // Notifications badge (only when authed)
   const [unread, setUnread] = useState(0);
   useEffect(() => {
+    if (!authed) return;
     const token = localStorage.getItem("token");
-    if (!token) return;
     const load = async () => {
       try {
         const { data } = await api.get("/api/notifications", {
@@ -55,7 +62,7 @@ export default function Sidebar() {
     load();
     const id = setInterval(load, 60000);
     return () => clearInterval(id);
-  }, []);
+  }, [authed]);
 
   return (
     <aside className="sidebar">
@@ -87,9 +94,9 @@ export default function Sidebar() {
       </nav>
 
       <nav className="sidebar-bottom nav">
-        <Item to="/notifications" icon={BellIcon} label="Notifications" badge={unread} />
+        {authed && <Item to="/notifications" icon={BellIcon} label="Notifications" badge={unread} />}
         <Item to="/settings" icon={SettingsIcon} label="Settings" />
-        {/* Only show Login when not authenticated */}
+        {/* Hide login whenever authed == true */}
         {!authed && <Item to="/login" icon={LoginIcon} label="Login" />}
       </nav>
     </aside>
