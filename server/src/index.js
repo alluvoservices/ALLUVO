@@ -8,6 +8,9 @@ import twilio from "twilio";
 import axios from "axios";
 import http from "http";
 import { Server } from "socket.io";
+import bcrypt from "bcryptjs";
+import validator from "validator";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 dotenv.config();
 const app = express();
@@ -30,7 +33,7 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: "5mb" })); // allow small avatar data URLs, etc.
 
 // CORS (Socket.io)
 const io = new Server(httpServer, {
@@ -43,14 +46,22 @@ const io = new Server(httpServer, {
   }
 });
 
-// In-memory demo stores
+// In-memory stores (demo)
+const users = new Map(); // id -> { id, type: 'email'|'phone', passwordHash? }
 const profilesByUser = new Map(); // userId -> [{id,name,avatar,kids}]
 const activeProfileByUser = new Map(); // userId -> profileId
-const notificationsByUser = new Map(); // userId -> array
+const notificationsByUser = new Map(); // userId -> [notes]
 const MAX_PROFILES = 4;
 const makeId = () => Math.random().toString(36).slice(2, 10);
 
-// SMTP (email OTP)
+// OTP (optional)
+let smsClient = null;
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+  smsClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+}
+const VERIFY_SID = process.env.TWILIO_VERIFY_SID || ""; // if present, use Verify for phone OTP
+
+// Email (SMTP)
 let mailer = null;
 if (process.env.SMTP_HOST) {
   mailer = nodemailer.createTransport({
@@ -61,26 +72,40 @@ if (process.env.SMTP_HOST) {
   });
 }
 
-// Twilio (Verify SMS optional)
-let smsClient = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-  smsClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-}
-const VERIFY_SID = process.env.TWILIO_VERIFY_SID || "";
-
-// OTP fallback store (when not using Verify or for email)
+// OTP fallback store (if not using Verify or for email)
 const otpStore = new Map(); // key -> { code, expiresAt }
 const OTP_TTL_MS = 5 * 60 * 1000;
 
 // Helpers
 const makeOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
-const keyFor = ({ phone, email }) => phone?.trim() || email?.trim()?.toLowerCase() || null;
+
+function normalizeIdentifier(raw, country) {
+  const v = String(raw || "").trim();
+  if (!v) throw new Error("Identifier required");
+  // Email
+  if (v.includes("@")) {
+    const e = v.toLowerCase();
+    if (!validator.isEmail(e)) throw new Error("Invalid email");
+    return { id: e, type: "email" };
+  }
+  // Phone (try parse with country)
+  const cc = (country || "IN").toUpperCase();
+  const p = parsePhoneNumberFromString(v, cc);
+  if (!p || !p.isValid()) throw new Error("Invalid phone");
+  return { id: p.number, type: "phone" }; // E.164
+}
+
+function passwordStrong(pw) {
+  // 8–18, 1 upper, 1 lower, 1 digit, 1 symbol
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,18}$/.test(String(pw || ""));
+}
 
 function ensureUser(userId) {
   if (!profilesByUser.has(userId)) {
-    const p = { id: makeId(), name: "Profile 1", avatar: null, kids: false };
-    profilesByUser.set(userId, [p]);
-    activeProfileByUser.set(userId, p.id);
+    const defaults = ["KIDS", "Profile 2", "Profile 3", "Profile 4"];
+    const list = defaults.map((name, i) => ({ id: makeId(), name, avatar: null, kids: i === 0 }));
+    profilesByUser.set(userId, list.slice(0, MAX_PROFILES));
+    activeProfileByUser.set(userId, list[3].id);
   }
   if (!notificationsByUser.has(userId)) {
     notificationsByUser.set(userId, [
@@ -88,6 +113,7 @@ function ensureUser(userId) {
     ]);
   }
 }
+
 function auth(req, res, next) {
   const h = req.headers.authorization || "";
   const token = h.startsWith("Bearer ") ? h.slice(7) : null;
@@ -102,11 +128,44 @@ function auth(req, res, next) {
   }
 }
 
-// Rate limit for requesting OTP
+// Rate limit for request-otp
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false });
 app.use("/api/auth/request-otp", limiter);
 
-// Send OTP via Verify (phone) or SMTP (email); dev prints
+// ========== Password auth ==========
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { identifier, password, country } = req.body || {};
+    const norm = normalizeIdentifier(identifier, country);
+    if (!passwordStrong(password)) return res.status(400).json({ error: "Weak password" });
+    if (users.has(norm.id)) return res.status(409).json({ error: "Account already exists" });
+    const hash = await bcrypt.hash(password, 10);
+    users.set(norm.id, { id: norm.id, type: norm.type, passwordHash: hash });
+    ensureUser(norm.id);
+    const token = jwt.sign({ sub: norm.id }, JWT_SECRET, { expiresIn: "7d" });
+    res.json({ token, user: { id: norm.id }, profiles: profilesByUser.get(norm.id), activeId: activeProfileByUser.get(norm.id) });
+  } catch (e) {
+    res.status(400).json({ error: e.message || "Invalid data" });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { identifier, password, country } = req.body || {};
+    const norm = normalizeIdentifier(identifier, country);
+    const u = users.get(norm.id);
+    if (!u || !u.passwordHash) return res.status(400).json({ error: "Invalid credentials" });
+    const ok = await bcrypt.compare(password, u.passwordHash);
+    if (!ok) return res.status(400).json({ error: "Invalid credentials" });
+    ensureUser(norm.id);
+    const token = jwt.sign({ sub: norm.id }, JWT_SECRET, { expiresIn: "7d" });
+    res.json({ token, user: { id: norm.id }, profiles: profilesByUser.get(norm.id), activeId: activeProfileByUser.get(norm.id) });
+  } catch (e) {
+    res.status(400).json({ error: e.message || "Invalid data" });
+  }
+});
+
+// ========== OTP auth (still available) ==========
 async function sendOtp({ phone, email, code }) {
   if (phone) {
     if (smsClient && VERIFY_SID) {
@@ -140,26 +199,21 @@ async function sendOtp({ phone, email, code }) {
   throw new Error("No phone or email provided");
 }
 
-// Auth endpoints
 app.post("/api/auth/request-otp", async (req, res) => {
   const phone = req.body.phone?.trim();
   const email = req.body.email?.trim()?.toLowerCase();
   if (!phone && !email) return res.status(400).json({ error: "Provide phone or email" });
-
-  const key = keyFor({ phone, email });
+  const key = phone || email;
   const code = makeOTP();
-
   if (!phone || !VERIFY_SID) {
     otpStore.set(key, { code, expiresAt: Date.now() + OTP_TTL_MS });
     setTimeout(() => otpStore.delete(key), OTP_TTL_MS + 1000);
   }
-
   try {
     const info = await sendOtp({ phone, email, code });
     res.json({ sent: true, via: info.via });
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Failed to send OTP" });
+    console.error(e); res.status(500).json({ error: "Failed to send OTP" });
   }
 });
 
@@ -167,7 +221,7 @@ app.post("/api/auth/verify-otp", async (req, res) => {
   const phone = req.body.phone?.trim();
   const email = req.body.email?.trim()?.toLowerCase();
   const code = String(req.body.code || "");
-  const key = keyFor({ phone, email });
+  const key = phone || email;
   if (!key || !code) return res.status(400).json({ error: "Missing data" });
 
   if (phone && smsClient && VERIFY_SID) {
@@ -180,71 +234,52 @@ app.post("/api/auth/verify-otp", async (req, res) => {
   } else {
     const record = otpStore.get(key);
     if (!record) return res.status(400).json({ error: "OTP not found or expired" });
-    if (Date.now() > record.expiresAt) {
-      otpStore.delete(key);
-      return res.status(400).json({ error: "OTP expired" });
-    }
+    if (Date.now() > record.expiresAt) { otpStore.delete(key); return res.status(400).json({ error: "OTP expired" }); }
     if (record.code !== code) return res.status(400).json({ error: "Invalid code" });
     otpStore.delete(key);
   }
 
+  // Auto-provision user record so password login can be added later
+  const type = email ? "email" : "phone";
+  if (!users.has(key)) users.set(key, { id: key, type });
   ensureUser(key);
   const token = jwt.sign({ sub: key }, JWT_SECRET, { expiresIn: "7d" });
-  res.json({
-    token,
-    user: { id: key },
-    profiles: profilesByUser.get(key),
-    activeId: activeProfileByUser.get(key)
-  });
+  res.json({ token, user: { id: key }, profiles: profilesByUser.get(key), activeId: activeProfileByUser.get(key) });
 });
 
-// DEMO LOGIN (no OTP)
+// DEMO login
 app.post("/api/auth/demo", (req, res) => {
   if (!DEMO_LOGIN) return res.status(403).json({ error: "Demo login disabled" });
   if (DEMO_CODE && req.body?.code !== DEMO_CODE) return res.status(403).json({ error: "Invalid demo code" });
-
   const userId = "demo@alluvo.local";
+  users.set(userId, { id: userId, type: "email" });
   ensureUser(userId);
-
-  // Ensure 4 demo profiles
-  const defaults = ["KIDS", "Profile 2", "Profile 3", "Profile 4"];
-  const list = profilesByUser.get(userId);
-  for (let i = 0; i < defaults.length; i++) {
-    if (!list[i]) list[i] = { id: makeId(), name: defaults[i], avatar: null, kids: i === 0 };
-  }
-  profilesByUser.set(userId, list.slice(0, MAX_PROFILES));
-  activeProfileByUser.set(userId, list[3].id); // highlight Profile 4 by default
-
   const token = jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: "7d" });
-  res.json({
-    token,
-    user: { id: userId },
-    profiles: profilesByUser.get(userId),
-    activeId: activeProfileByUser.get(userId)
-  });
+  res.json({ token, user: { id: userId }, profiles: profilesByUser.get(userId), activeId: activeProfileByUser.get(userId) });
 });
 
-// Profiles API (max 4)
-app.get("/api/profiles", auth, (req, res) => {
+// Profiles API
+app.get("/api/profiles", (req, res, next) => auth(req, res, next), (req, res) => {
   res.json({ profiles: profilesByUser.get(req.userId) || [], activeId: activeProfileByUser.get(req.userId) || null });
 });
-app.post("/api/profiles", auth, (req, res) => {
+app.post("/api/profiles", (req, res, next) => auth(req, res, next), (req, res) => {
   const list = profilesByUser.get(req.userId) || [];
   if (list.length >= MAX_PROFILES) return res.status(400).json({ error: "Max 4 profiles" });
   const name = (req.body?.name || `Profile ${list.length + 1}`).slice(0, 30);
-  const p = { id: makeId(), name, avatar: null, kids: !!req.body?.kids };
+  const p = { id: makeId(), name, avatar: req.body?.avatar || null, kids: !!req.body?.kids };
   list.push(p); profilesByUser.set(req.userId, list);
   res.json({ profile: p });
 });
-app.put("/api/profiles/:id", auth, (req, res) => {
+app.put("/api/profiles/:id", (req, res, next) => auth(req, res, next), (req, res) => {
   const list = profilesByUser.get(req.userId) || [];
   const p = list.find(x => x.id === req.params.id);
   if (!p) return res.status(404).json({ error: "Not found" });
   if (req.body?.name !== undefined) p.name = String(req.body.name).slice(0, 30);
+  if (req.body?.avatar !== undefined) p.avatar = req.body.avatar;
   if (req.body?.kids !== undefined) p.kids = !!req.body.kids;
   res.json({ profile: p });
 });
-app.delete("/api/profiles/:id", auth, (req, res) => {
+app.delete("/api/profiles/:id", (req, res, next) => auth(req, res, next), (req, res) => {
   const list = profilesByUser.get(req.userId) || [];
   const idx = list.findIndex(x => x.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Not found" });
@@ -255,7 +290,7 @@ app.delete("/api/profiles/:id", auth, (req, res) => {
   }
   res.json({ ok: true });
 });
-app.post("/api/profiles/:id/activate", auth, (req, res) => {
+app.post("/api/profiles/:id/activate", (req, res, next) => auth(req, res, next), (req, res) => {
   const list = profilesByUser.get(req.userId) || [];
   const p = list.find(x => x.id === req.params.id);
   if (!p) return res.status(404).json({ error: "Not found" });
@@ -263,24 +298,24 @@ app.post("/api/profiles/:id/activate", auth, (req, res) => {
   res.json({ activeId: p.id });
 });
 
-// Notifications (simple)
-app.get("/api/notifications", auth, (req, res) => {
+// Notifications
+app.get("/api/notifications", (req, res, next) => auth(req, res, next), (req, res) => {
   res.json({ items: (notificationsByUser.get(req.userId) || []).sort((a,b)=>b.ts-a.ts) });
 });
-app.post("/api/notifications/:id/read", auth, (req, res) => {
+app.post("/api/notifications/:id/read", (req, res, next) => auth(req, res, next), (req, res) => {
   const items = notificationsByUser.get(req.userId) || [];
   const it = items.find(x => x.id === req.params.id);
   if (it) it.read = true;
   res.json({ ok: true });
 });
-app.delete("/api/notifications/read", auth, (req, res) => {
+app.delete("/api/notifications/read", (req, res, next) => auth(req, res, next), (req, res) => {
   let items = notificationsByUser.get(req.userId) || [];
   items = items.filter(x => !x.read);
   notificationsByUser.set(req.userId, items);
   res.json({ ok: true });
 });
 
-// TMDB helpers (work if TMDB_API_KEY provided)
+// TMDB helpers (if TMDB_API_KEY is present)
 const TMDB_BASE = "https://api.themoviedb.org/3";
 async function tmdb(path, params = {}) {
   if (!TMDB) return { results: [] };
@@ -341,7 +376,7 @@ app.get("/api/movies/:id/open", async (req, res) => {
   } catch { res.json({ title: "", links: [] }); }
 });
 
-// Food + Tickets + Global search kept same as earlier
+// Food/Tickets/Global search stubs
 const FOODS = [
   { id: "f1", name: "Chicken Biryani", type: "non-veg", img: "https://images.unsplash.com/photo-1601050690597-9f7a27f2d2cc?w=600&q=60" },
   { id: "f2", name: "Veg Biryani", type: "veg", img: "https://images.unsplash.com/photo-1604908176997-431f9f675e3e?w=600&q=60" },
@@ -368,7 +403,7 @@ app.get("/api/search", async (req, res) => {
   if (!q) return res.json({ movies: [], food: [], tickets: [] });
   try {
     const [movies, food, tickets] = await Promise.all([
-      tmdb("/search/movie", { query: q, language: "en-IN" }).then(d => (d.results || []).slice(0, 8).map(m => ({ id: m.id, title: m.title, poster: poster(m.poster_path) }))),
+      TMDB ? tmdb("/search/movie", { query: q, language: "en-IN" }).then(d => (d.results || []).slice(0, 8).map(m => ({ id: m.id, title: m.title, poster: poster(m.poster_path) }))) : [],
       Promise.resolve(FOODS.filter(x => x.name.toLowerCase().includes(q.toLowerCase())).map(i => ({ id: i.id, name: i.name, type: i.type, link: `https://www.eatsure.com/search?q=${encodeURIComponent(i.name)}` }))),
       Promise.resolve([{ id: "bms", title: q, link: `https://in.bookmyshow.com/explore/movies-hyderabad?query=${encodeURIComponent(q)}` }])
     ]);

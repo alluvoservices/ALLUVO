@@ -15,6 +15,9 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.14",
     "socket.io": "^4.7.5",
-    "twilio": "^5.2.0"
+    "twilio": "^5.2.0",
+    "bcryptjs": "^2.4.3",
+    "libphonenumber-js": "^1.10.55",
+    "validator": "^13.11.0"
   }
 }
