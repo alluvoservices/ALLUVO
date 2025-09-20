@@ -27,33 +27,53 @@ export default function Sidebar() {
   const base = import.meta.env.BASE_URL || "/";
   const active = JSON.parse(localStorage.getItem("activeProfile") || "null");
   const initials = (active?.name?.[0] || "P").toUpperCase();
-  const [unread, setUnread] = useState(0);
 
+  // Track auth (token in localStorage) and update on login/logout
+  const [authed, setAuthed] = useState(!!localStorage.getItem("token"));
+  useEffect(() => {
+    const onChange = () => setAuthed(!!localStorage.getItem("token"));
+    window.addEventListener("storage", onChange);       // other tabs
+    window.addEventListener("auth-changed", onChange);  // same tab
+    return () => {
+      window.removeEventListener("storage", onChange);
+      window.removeEventListener("auth-changed", onChange);
+    };
+  }, []);
+
+  const [unread, setUnread] = useState(0);
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
     const load = async () => {
       try {
-        const { data } = await api.get("/api/notifications", { headers: { Authorization: `Bearer ${token}` } });
-        const n = (data.items || []).filter(x => !x.read).length;
-        setUnread(n);
+        const { data } = await api.get("/api/notifications", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUnread((data.items || []).filter(x => !x.read).length);
       } catch {}
     };
-    load(); const id = setInterval(load, 60000);
+    load();
+    const id = setInterval(load, 60000);
     return () => clearInterval(id);
   }, []);
 
   return (
     <aside className="sidebar">
       <div className="brand">
-        <img src={`${base}logo.svg`} alt="ALLUVO" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${base}logo.jpg`; }} />
+        <img
+          src={`${base}logo.svg`}
+          alt="ALLUVO"
+          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${base}logo.jpg`; }}
+        />
         <div className="name">ALLUVO</div>
       </div>
 
       <nav className="nav">
         <NavLink className="item" to="/profiles">
           <span className="icon-wrap">
-            {active?.avatar ? <span className="avatar-mini img" style={{ backgroundImage: `url(${active.avatar})` }} /> : <div className="avatar-mini">{initials}</div>}
+            {active?.avatar
+              ? <span className="avatar-mini img" style={{ backgroundImage: `url(${active.avatar})` }} />
+              : <div className="avatar-mini">{initials}</div>}
           </span>
           <span className="label">Profile</span>
         </NavLink>
@@ -69,7 +89,8 @@ export default function Sidebar() {
       <nav className="sidebar-bottom nav">
         <Item to="/notifications" icon={BellIcon} label="Notifications" badge={unread} />
         <Item to="/settings" icon={SettingsIcon} label="Settings" />
-        <Item to="/login" icon={LoginIcon} label="Login" />
+        {/* Only show Login when not authenticated */}
+        {!authed && <Item to="/login" icon={LoginIcon} label="Login" />}
       </nav>
     </aside>
   );
