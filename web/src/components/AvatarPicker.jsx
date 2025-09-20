@@ -2,21 +2,16 @@ import React, { useRef } from "react";
 
 export default function AvatarPicker({ open, base = "/", onClose, onSelect }) {
   if (!open) return null;
-
-  // Preset avatar file names (placed in web/public/avatars)
   const presets = Array.from({ length: 10 }, (_, i) => `${base}avatars/avatar-${i+1}.svg`);
-
   const fileRef = useRef(null);
-
-  function pickFile() { fileRef.current?.click(); }
-  function handleFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const pickFile = () => fileRef.current?.click();
+  const handleFile = (e) => {
+    const f = e.target.files?.[0]; if (!f) return;
     const reader = new FileReader();
     reader.onload = () => { onSelect?.(reader.result); onClose?.(); };
     reader.readAsDataURL(f);
-  }
-  function removeAvatar() { onSelect?.(null); onClose?.(); }
+  };
+  const removeAvatar = () => { onSelect?.(null); onClose?.(); };
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -36,7 +31,7 @@ export default function AvatarPicker({ open, base = "/", onClose, onSelect }) {
         </div>
         <input ref={fileRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleFile} />
         <div style={{ color:"#9fb0cc", fontSize:12, marginTop:8 }}>
-          You can replace the presets by uploading your own images into web/public/avatars.
+          Replace presets by uploading your own images into web/public/avatars.
         </div>
       </div>
     </div>

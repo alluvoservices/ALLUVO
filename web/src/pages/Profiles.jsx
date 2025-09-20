@@ -21,8 +21,7 @@ export default function Profiles() {
       try {
         const { data } = await api.get("/api/profiles", { headers: { Authorization: `Bearer ${token}` } });
         const profiles = (data.profiles || []).slice(0, MAX);
-        setList(profiles);
-        setActiveId(data.activeId || null);
+        setList(profiles); setActiveId(data.activeId || null);
         const idx = profiles.findIndex(p => p.id === data.activeId);
         if (idx >= 0) localStorage.setItem("activeProfileIndex", String(idx + 1));
       } finally { setLoading(false); }
@@ -36,15 +35,12 @@ export default function Profiles() {
     const { data } = await api.post("/api/profiles", { name }, { headers: { Authorization: `Bearer ${token}` } });
     setList(x => [...x, data.profile].slice(0, MAX));
   }
-
   async function renameProfile(id, cur) {
-    const name = prompt("New name", cur);
-    if (!name) return;
+    const name = prompt("New name", cur); if (!name) return;
     const { data } = await api.put(`/api/profiles/${id}`, { name }, { headers: { Authorization: `Bearer ${token}` } });
     setList(prev => prev.map(p => p.id === id ? data.profile : p));
     if (data.profile.id === activeId) localStorage.setItem("activeProfile", JSON.stringify(data.profile));
   }
-
   async function removeProfile(id) {
     if (!confirm("Delete this profile?")) return;
     await api.delete(`/api/profiles/${id}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -55,7 +51,6 @@ export default function Profiles() {
       setActiveId(null);
     }
   }
-
   async function activate(id) {
     await api.post(`/api/profiles/${id}/activate`, {}, { headers: { Authorization: `Bearer ${token}` } });
     setActiveId(id);
@@ -65,7 +60,6 @@ export default function Profiles() {
     if (p) localStorage.setItem("activeProfile", JSON.stringify(p));
     navigate("/stream");
   }
-
   async function changeAvatar(profileId, value) {
     const { data } = await api.put(`/api/profiles/${profileId}`, { avatar: value }, { headers: { Authorization: `Bearer ${token}` } });
     setList(prev => prev.map(p => p.id === profileId ? data.profile : p));
@@ -88,19 +82,13 @@ export default function Profiles() {
           return (
             <div key={p.id} className={"p-tile" + (isActive ? " active" : "")}>
               <button className={"avatar-xxl" + (isActive ? " ring" : "")} onClick={() => activate(p.id)} title="Activate">
-                {p.avatar ? (
-                  <img src={p.avatar} alt="" className="avatar-xxl-img" />
-                ) : (
-                  <span>{(p.name || "P")[0].toUpperCase()}</span>
-                )}
+                {p.avatar ? <img src={p.avatar} alt="" className="avatar-xxl-img" /> : <span>{(p.name || "P")[0].toUpperCase()}</span>}
               </button>
               <div className="p-title">{p.name}</div>
 
               {edit && (
                 <div className="p-actions">
-                  <button className="chip" title="Change avatar" onClick={() => setPickerFor(p.id)}>
-                    <ImageIcon size={16} />
-                  </button>
+                  <button className="chip" title="Change avatar" onClick={() => setPickerFor(p.id)}><ImageIcon size={16} /></button>
                   <button className="chip ghost" onClick={() => renameProfile(p.id, p.name)} title="Rename"><Pencil size={16} /></button>
                   <button className="chip danger" onClick={() => removeProfile(p.id)} title="Delete"><Trash2 size={16} /></button>
                 </div>
@@ -123,12 +111,7 @@ export default function Profiles() {
         <button className="btn ghost" onClick={() => setEdit(e => !e)}>{edit ? "Done" : "Edit Profiles"}</button>
       </div>
 
-      <AvatarPicker
-        open={!!pickerFor}
-        base={base}
-        onClose={() => setPickerFor(null)}
-        onSelect={(val) => pickerFor && changeAvatar(pickerFor, val)}
-      />
+      <AvatarPicker open={!!pickerFor} base={base} onClose={() => setPickerFor(null)} onSelect={(val) => pickerFor && changeAvatar(pickerFor, val)} />
     </div>
   );
 }

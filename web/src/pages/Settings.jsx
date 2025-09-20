@@ -13,57 +13,29 @@ export default function Settings() {
     document.documentElement.setAttribute("data-theme", key);
     localStorage.setItem("theme", key);
   }
-
   function logout() {
-    const ok = confirm("Log out of ALLUVO on this device?");
-    if (!ok) return;
-
+    if (!confirm("Log out of ALLUVO on this device?")) return;
     try {
       localStorage.removeItem("token");
       localStorage.removeItem("activeProfile");
       localStorage.removeItem("activeProfileIndex");
-      // Remove any end-to-end chat room keys if present
-      Object.keys(localStorage).forEach(k => {
-        if (k.startsWith("roomKey:")) localStorage.removeItem(k);
-      });
+      Object.keys(localStorage).forEach(k => { if (k.startsWith("roomKey:")) localStorage.removeItem(k); });
     } finally {
       navigate("/login", { replace: true });
     }
   }
-
-  const current =
-    typeof document !== "undefined"
-      ? document.documentElement.getAttribute("data-theme")
-      : null;
+  const current = typeof document !== "undefined" ? document.documentElement.getAttribute("data-theme") : null;
 
   return (
     <div className="page">
       <h2 style={{ marginTop: 0 }}>Settings</h2>
 
       <div className="section-title">Theme</div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 12
-        }}
-      >
-        {themes.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTheme(t.key)}
-            className="row"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              cursor: "pointer",
-              outline: current === t.key ? "2px solid var(--accent-2)" : "none"
-            }}
-          >
-            <Sw c={t.sw[0]} />
-            <Sw c={t.sw[1]} />
-            <Sw c={t.sw[2]} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+        {themes.map(t => (
+          <button key={t.key} onClick={() => setTheme(t.key)} className="row"
+            style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", outline: current===t.key ? "2px solid var(--accent-2)" : "none" }}>
+            <Sw c={t.sw[0]} /><Sw c={t.sw[1]} /><Sw c={t.sw[2]} />
             <div style={{ fontWeight: 800 }}>{t.name}</div>
           </button>
         ))}
@@ -82,29 +54,14 @@ export default function Settings() {
       </div>
 
       <div className="section-title">Danger Zone</div>
-      <div className="row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="row" style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div>
           <div style={{ fontWeight: 700 }}>Log out</div>
-          <div style={{ color: "var(--muted)", fontSize: 12 }}>
-            Sign out of ALLUVO on this device.
-          </div>
+          <div style={{ color:"var(--muted)", fontSize: 12 }}>Sign out of ALLUVO on this device.</div>
         </div>
         <button className="btn danger" onClick={logout}>Log out</button>
       </div>
     </div>
   );
 }
-
-function Sw({ c }) {
-  return (
-    <div
-      style={{
-        width: 22,
-        height: 22,
-        borderRadius: 6,
-        background: c,
-        boxShadow: `0 0 12px ${c}88`
-      }}
-    />
-  );
-}
+function Sw({ c }) { return <div style={{ width:22, height:22, borderRadius:6, background:c, boxShadow:`0 0 12px ${c}88` }} />; }

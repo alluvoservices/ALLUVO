@@ -12,10 +12,7 @@ const COUNTRIES = [
   { code: "AU", dial: "+61", label: "Australia (+61)" }
 ];
 
-function isEmail(v) {
-  const s = String(v||"").trim();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-}
+function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim()); }
 function normalizeIdentifier(raw, countryCode) {
   const v = String(raw||"").trim();
   if (!v) return { ok: false, error: "Enter email or phone" };
@@ -26,15 +23,13 @@ function normalizeIdentifier(raw, countryCode) {
   const cc = (countryCode || "IN").toUpperCase();
   const p = parsePhoneNumberFromString(v, cc);
   if (!p || !p.isValid()) return { ok: false, error: "Enter a valid phone number" };
-  return { ok: true, id: p.number, type: "phone" }; // E.164
+  return { ok: true, id: p.number, type: "phone" };
 }
-function strongPassword(pw) {
-  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,18}$/.test(String(pw||""));
-}
+function strongPassword(pw) { return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,18}$/.test(String(pw||"")); }
 function errMsg(e, fallback) {
   const d = e?.response?.data;
   if (d?.error) return d.error;
-  if (typeof d === "string") return d.slice(0, 200);
+  if (typeof d === "string") return d.slice(0,200);
   if (e?.message) return e.message;
   return fallback;
 }
@@ -43,12 +38,12 @@ export default function Login({ setGlobalLoading }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState("login"); // login | register | otp | otp-code
   const [country, setCountry] = useState("IN");
-  const [id, setId] = useState(""); // email or phone
+  const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showPw2, setShowPw2] = useState(false);
-  const [code, setCode] = useState(""); // OTP
+  const [code, setCode] = useState("");
   const [err, setErr] = useState("");
 
   function onAuth(data) {
@@ -72,9 +67,8 @@ export default function Login({ setGlobalLoading }) {
     try {
       const { data } = await api.post("/api/auth/register", { identifier: norm.id, password: pw, country });
       onAuth(data);
-    } catch (e) {
-      setErr(errMsg(e, "Could not create account"));
-    } finally { setGlobalLoading?.(false); }
+    } catch (e) { setErr(errMsg(e, "Could not create account")); }
+    finally { setGlobalLoading?.(false); }
   }
 
   async function doLogin(e) {
@@ -86,9 +80,8 @@ export default function Login({ setGlobalLoading }) {
     try {
       const { data } = await api.post("/api/auth/login", { identifier: norm.id, password: pw, country });
       onAuth(data);
-    } catch (e) {
-      setErr(errMsg(e, "Invalid credentials"));
-    } finally { setGlobalLoading?.(false); }
+    } catch (e) { setErr(errMsg(e, "Invalid credentials")); }
+    finally { setGlobalLoading?.(false); }
   }
 
   async function requestOtp(e) {
@@ -100,9 +93,8 @@ export default function Login({ setGlobalLoading }) {
       const payload = norm.type === "phone" ? { phone: norm.id } : { email: norm.id };
       const { data } = await api.post("/api/auth/request-otp", payload);
       if (data.sent) setMode("otp-code");
-    } catch (e) {
-      setErr(errMsg(e, "Failed to send OTP"));
-    } finally { setGlobalLoading?.(false); }
+    } catch (e) { setErr(errMsg(e, "Failed to send OTP")); }
+    finally { setGlobalLoading?.(false); }
   }
 
   async function verifyOtp(e) {
@@ -115,19 +107,15 @@ export default function Login({ setGlobalLoading }) {
       const payload = norm.type === "phone" ? { phone: norm.id, code } : { email: norm.id, code };
       const { data } = await api.post("/api/auth/verify-otp", payload);
       onAuth(data);
-    } catch (e) {
-      setErr(errMsg(e, "Invalid code"));
-    } finally { setGlobalLoading?.(false); }
+    } catch (e) { setErr(errMsg(e, "Invalid code")); }
+    finally { setGlobalLoading?.(false); }
   }
 
   async function demo() {
     setErr(""); setGlobalLoading?.(true);
-    try {
-      const { data } = await api.post("/api/auth/demo", {});
-      onAuth(data);
-    } catch (e) {
-      setErr(errMsg(e, "Demo disabled"));
-    } finally { setGlobalLoading?.(false); }
+    try { const { data } = await api.post("/api/auth/demo", {}); onAuth(data); }
+    catch (e) { setErr(errMsg(e, "Demo disabled")); }
+    finally { setGlobalLoading?.(false); }
   }
 
   const base = import.meta.env.BASE_URL || "/";
@@ -136,21 +124,18 @@ export default function Login({ setGlobalLoading }) {
   return (
     <div className="page" style={{ maxWidth: 560, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <img src={`${base}logo.svg`} width="78"
-             onError={(e)=>{e.currentTarget.onerror=null; e.currentTarget.src=`${base}logo.jpg`;}}
+        <img src={`${base}logo.svg`} width="78" onError={(e)=>{e.currentTarget.onerror=null; e.currentTarget.src=`${base}logo.jpg`;}}
              style={{ borderRadius: 12, boxShadow: "0 0 18px #0ff5" }} />
         <h2 className="login-title">Sign in to ALLUVO</h2>
         <div className="login-sub">Use email/phone + password, or OTP</div>
       </div>
 
-      {/* Tabs */}
       <div style={{ display:"flex", gap:8, marginBottom:12 }}>
         <button className={"tab" + (mode==="login" ? " active" : "")} onClick={()=>setMode("login")}>Login</button>
         <button className={"tab" + (mode==="register" ? " active" : "")} onClick={()=>setMode("register")}>Create account</button>
         <button className={"tab" + ((mode==="otp"||mode==="otp-code") ? " active" : "")} onClick={()=>setMode("otp")}>Use OTP</button>
       </div>
 
-      {/* Email/Phone + Country */}
       <div className="searchbar" style={{ alignItems:"center" }}>
         <input className={inputClass} placeholder="Email or phone number" value={id} onChange={e=>setId(e.target.value)} />
         <select className={inputClass} style={{ maxWidth:160 }} value={country} onChange={e=>setCountry(e.target.value)}>

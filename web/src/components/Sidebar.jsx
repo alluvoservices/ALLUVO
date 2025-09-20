@@ -39,29 +39,21 @@ export default function Sidebar() {
         setUnread(n);
       } catch {}
     };
-    load();
-    const id = setInterval(load, 60000);
+    load(); const id = setInterval(load, 60000);
     return () => clearInterval(id);
   }, []);
 
   return (
     <aside className="sidebar">
       <div className="brand">
-        <img
-          src={`${base}logo.svg`}
-          alt="ALLUVO"
-          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${base}logo.jpg`; }}
-        />
+        <img src={`${base}logo.svg`} alt="ALLUVO" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = `${base}logo.jpg`; }} />
         <div className="name">ALLUVO</div>
       </div>
 
       <nav className="nav">
         <NavLink className="item" to="/profiles">
           <span className="icon-wrap">
-            {active?.avatar
-              ? <span className="avatar-mini img" style={{ backgroundImage: `url(${active.avatar})` }} />
-              : <div className="avatar-mini">{initials}</div>
-            }
+            {active?.avatar ? <span className="avatar-mini img" style={{ backgroundImage: `url(${active.avatar})` }} /> : <div className="avatar-mini">{initials}</div>}
           </span>
           <span className="label">Profile</span>
         </NavLink>
