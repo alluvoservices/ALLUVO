@@ -322,3 +322,61 @@ a, a:link, a:visited, a:hover, a:active {
 
 .help { color: var(--muted); font-size: 12px; }
 .success-text { color: #a0f5c1; font-weight: 600; }
+
+/* Visibility helpers */
+.mobile-only { display: none; }
+.desktop-only { display: block; }
+
+/* Mobile nav + top bar + spacing */
+@media (max-width: 992px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+
+  /* Hide desktop sidebar */
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding-top: 58px; padding-bottom: 76px; }
+
+  /* Top bar */
+  .mobile-topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 10px; z-index: 25;
+    background: #0f1626cc; border-bottom: 1px solid #223053; backdrop-filter: blur(10px);
+  }
+  .mobile-topbar .mtb-left, .mobile-topbar .mtb-right {
+    display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+    border-radius: 999px; border: 1px solid #223053; background: #0e1526;
+    color: #dbe7ff;
+  }
+  .mobile-topbar .mtb-left .avatar-mini { transform: scale(1.1); }
+  .mobile-topbar .mtb-brand { display: inline-flex; align-items: center; gap: 8px; }
+  .mobile-topbar .mtb-brand img { width: 22px; height: 22px; border-radius: 4px; }
+  .mobile-topbar .mtb-brand span {
+    font-weight: 800; letter-spacing: .3px; color: #dbe7ff;
+    background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* Bottom nav */
+  .mobile-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+    z-index: 25; display: grid; grid-template-columns: repeat(5, 1fr);
+    background: #0f1626cc; border-top: 1px solid #223053; backdrop-filter: blur(10px);
+  }
+  .mnav-item {
+    display: grid; place-items: center; gap: 2px; text-decoration: none; color: #cfe0ff;
+    font-size: 12px; padding-top: 6px;
+  }
+  .mnav-item.active { color: #08121e; }
+  .mnav-item.active svg { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-1) 60%, transparent)); }
+  .mnav-item.active {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-1) 10%, transparent), transparent);
+  }
+
+  /* Profiles quick links visible only on mobile */
+  .profiles-quick { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+  .chip { display: inline-grid; place-items: center; height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #2b3c66; background: #0e1526; color: #e7eeff; text-decoration: none; }
+  .chip.ghost { background: transparent; }
+}
+
+/* Keep links nice inside footer/topbar on dark bg */
+footer a, .mobile-topbar a { color: #dbe7ff; text-decoration: none; }

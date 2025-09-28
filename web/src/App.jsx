@@ -14,6 +14,8 @@ import Settings from "./pages/Settings.jsx";
 import Login from "./pages/Login.jsx";
 import LoaderOverlay from "./components/LoaderOverlay.jsx";
 import OpeningVideo from "./components/OpeningVideo.jsx";
+import MobileTopBar from "./components/MobileTopBar.jsx";
+import MobileNav from "./components/MobileNav.jsx";
 
 export default function App() {
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,7 @@ export default function App() {
     <div className="app">
       {showIntro && <OpeningVideo onEnd={onIntroEnd} />}
       <Sidebar />
+      <MobileTopBar />
       <main className="main">
         <Routes>
           <Route path="/" element={<Profiles />} />
@@ -47,6 +50,7 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/login" element={<Login setGlobalLoading={setLoading} />} />
         </Routes>
+        <MobileNav />
       </main>
       <LoaderOverlay show={loading} />
     </div>

@@ -74,6 +74,12 @@ export default function Profiles() {
       <div className="profiles-hero">
         <div className="hero-brand">ALLUVO</div>
         <div className="hero-sub">The Digital Multiplex</div>
+        <div className="profiles-quick mobile-only">
+          <a className="chip" href="/settings">Settings</a>
+          <a className="chip ghost" href="/notifications">Notifications</a>
+        </div>
+      </div>
+        <div className="hero-sub">The Digital Multiplex</div>
       </div>
 
       <div className="profiles-grid-2x2">
