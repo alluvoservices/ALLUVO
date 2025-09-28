@@ -380,3 +380,49 @@ a, a:link, a:visited, a:hover, a:active {
 
 /* Keep links nice inside footer/topbar on dark bg */
 footer a, .mobile-topbar a { color: #dbe7ff; text-decoration: none; }
+
+/* Force mobile layout when :root has .is-mobile (in addition to the @media rules) */
+:root.is-mobile .desktop-only { display: none !important; }
+:root.is-mobile .mobile-only  { display: block !important; }
+:root.is-mobile .sidebar      { display: none !important; }
+:root.is-mobile .main         { margin-left: 0 !important; padding-top: 58px !important; padding-bottom: 76px !important; }
+
+/* Duplicate critical mobile bar styles outside media query so UA forcing works */
+:root.is-mobile .mobile-topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 10px; z-index: 25;
+  background: #0f1626cc; border-bottom: 1px solid #223053; backdrop-filter: blur(10px);
+}
+:root.is-mobile .mobile-topbar .mtb-left,
+:root.is-mobile .mobile-topbar .mtb-right {
+  display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px;
+  border-radius: 999px; border: 1px solid #223053; background: #0e1526; color: #dbe7ff;
+}
+:root.is-mobile .mobile-topbar .mtb-left .avatar-mini { transform: scale(1.1); }
+:root.is-mobile .mobile-topbar .mtb-brand { display: inline-flex; align-items: center; gap: 8px; }
+:root.is-mobile .mobile-topbar .mtb-brand img { width: 22px; height: 22px; border-radius: 4px; }
+:root.is-mobile .mobile-topbar .mtb-brand span {
+  font-weight: 800; letter-spacing: .3px;
+  background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+:root.is-mobile .mobile-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+  z-index: 25; display: grid; grid-template-columns: repeat(5, 1fr);
+  background: #0f1626cc; border-top: 1px solid #223053; backdrop-filter: blur(10px);
+}
+:root.is-mobile .mnav-item {
+  display: grid; place-items: center; gap: 2px; text-decoration: none; color: #cfe0ff;
+  font-size: 12px; padding-top: 6px;
+}
+:root.is-mobile .mnav-item.active { color: #08121e; }
+:root.is-mobile .mnav-item.active svg { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-1) 60%, transparent)); }
+:root.is-mobile .mnav-item.active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-1) 10%, transparent), transparent);
+}
+
+/* Profiles quick links on mobile (already present under media-query; mirror here) */
+:root.is-mobile .profiles-quick {
+  display: flex; gap: 8px; justify-content: center; margin-top: 8px;
+}

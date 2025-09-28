@@ -14,6 +14,7 @@ import Settings from "./pages/Settings.jsx";
 import Login from "./pages/Login.jsx";
 import LoaderOverlay from "./components/LoaderOverlay.jsx";
 import OpeningVideo from "./components/OpeningVideo.jsx";
+import { installDeviceWatcher } from "./utils/device.js";
 import MobileTopBar from "./components/MobileTopBar.jsx";
 import MobileNav from "./components/MobileNav.jsx";
 
@@ -25,6 +26,8 @@ export default function App() {
     const seen = sessionStorage.getItem("intro-seen");
     if (seen) setShowIntro(false);
   }, []);
+
+  useEffect(() => { installDeviceWatcher(); }, []);
   function onIntroEnd() {
     sessionStorage.setItem("intro-seen", "1");
     setShowIntro(false);
