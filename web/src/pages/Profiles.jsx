@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Trash2, Pencil, Plus, Image as ImageIcon } from "lucide-react";
 import AvatarPicker from "../components/AvatarPicker.jsx";
 
 export default function Profiles() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+
   const [list, setList] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState(false);
   const [pickerFor, setPickerFor] = useState(null);
+
   const MAX = 4;
   const base = import.meta.env.BASE_URL || "/";
 
@@ -29,7 +31,9 @@ export default function Profiles() {
         setList(profiles);
         setActiveId(data.activeId || null);
         const idx = profiles.findIndex((p) => p.id === data.activeId);
-        if (idx >= 0) localStorage.setItem("activeProfileIndex", String(idx + 1));
+        if (idx >= 0) {
+          localStorage.setItem("activeProfileIndex", String(idx + 1));
+        }
       } finally {
         setLoading(false);
       }
@@ -37,7 +41,10 @@ export default function Profiles() {
   }, [token, navigate]);
 
   async function addProfile() {
-    if (list.length >= MAX) return alert(`Maximum ${MAX} profiles`);
+    if (list.length >= MAX) {
+      alert(`Maximum ${MAX} profiles`);
+      return;
+    }
     const name = prompt("Profile name? (e.g., KIDS, Profile 2)");
     if (!name) return;
     const { data } = await api.post(
@@ -48,8 +55,8 @@ export default function Profiles() {
     setList((x) => [...x, data.profile].slice(0, MAX));
   }
 
-  async function renameProfile(id, cur) {
-    const name = prompt("New name", cur);
+  async function renameProfile(id, currentName) {
+    const name = prompt("New name", currentName);
     if (!name) return;
     const { data } = await api.put(
       `/api/profiles/${id}`,
@@ -83,9 +90,13 @@ export default function Profiles() {
     );
     setActiveId(id);
     const idx = list.findIndex((x) => x.id === id);
-    if (idx >= 0) localStorage.setItem("activeProfileIndex", String(idx + 1));
+    if (idx >= 0) {
+      localStorage.setItem("activeProfileIndex", String(idx + 1));
+    }
     const p = list.find((x) => x.id === id);
-    if (p) localStorage.setItem("activeProfile", JSON.stringify(p));
+    if (p) {
+      localStorage.setItem("activeProfile", JSON.stringify(p));
+    }
     navigate("/stream");
   }
 
@@ -101,27 +112,32 @@ export default function Profiles() {
     }
   }
 
-  if (loading) return <div className="page">Loading profiles…</div>;
+  if (loading) {
+    return <div className="page">Loading profiles…</div>;
+  }
+
   const canAdd = list.length < MAX;
 
   return (
-    <div className="profiles-wrap">
-      <div className="profiles-hero">
+    <div className="page">
+      {/* Header (simple and safe) */}
+      <div style={{ textAlign: "center", marginBottom: 16 }}>
         <div className="hero-brand">ALLUVO</div>
         <div className="hero-sub">The Digital Multiplex</div>
-        {/* Mobile quick actions */}
-        <div className="profiles-quick mobile-only">
-          <a className="chip" href="/settings">Settings</a>
-          <a className="chip ghost" href="/notifications">Notifications</a>
+        <div className="profiles-quick mobile-only" style={{ marginTop: 8 }}>
+          <Link className="chip" to="/settings">Settings</Link>
+          <Link className="chip ghost" to="/notifications">Notifications</Link>
         </div>
       </div>
 
+      {/* Grid */}
       <div className="profiles-grid-2x2">
         {list.map((p) => {
           const isActive = p.id === activeId;
           return (
             <div key={p.id} className={"p-tile" + (isActive ? " active" : "")}>
               <button
+                type="button"
                 className={"avatar-xxl" + (isActive ? " ring" : "")}
                 onClick={() => activate(p.id)}
                 title="Activate"
@@ -129,7 +145,7 @@ export default function Profiles() {
                 {p.avatar ? (
                   <img src={p.avatar} alt="" className="avatar-xxl-img" />
                 ) : (
-                  <span>{(p.name || "P")[0].toUpperCase()}</span>
+                  <span>{(p.name || "P").charAt(0).toUpperCase()}</span>
                 )}
               </button>
               <div className="p-title">{p.name}</div>
@@ -137,6 +153,7 @@ export default function Profiles() {
               {edit && (
                 <div className="p-actions">
                   <button
+                    type="button"
                     className="chip"
                     title="Change avatar"
                     onClick={() => setPickerFor(p.id)}
@@ -144,6 +161,7 @@ export default function Profiles() {
                     <ImageIcon size={16} />
                   </button>
                   <button
+                    type="button"
                     className="chip ghost"
                     onClick={() => renameProfile(p.id, p.name)}
                     title="Rename"
@@ -151,6 +169,7 @@ export default function Profiles() {
                     <Pencil size={16} />
                   </button>
                   <button
+                    type="button"
                     className="chip danger"
                     onClick={() => removeProfile(p.id)}
                     title="Delete"
@@ -165,7 +184,12 @@ export default function Profiles() {
 
         {canAdd && (
           <div className="p-tile add">
-            <button className="avatar-xxl plus" onClick={addProfile} title="Add Profile">
+            <button
+              type="button"
+              className="avatar-xxl plus"
+              onClick={addProfile}
+              title="Add Profile"
+            >
               <Plus size={42} />
             </button>
             <div className="p-title muted">Add Profile</div>
@@ -173,8 +197,8 @@ export default function Profiles() {
         )}
       </div>
 
-      <div className="profiles-footer">
-        <button className="btn ghost" onClick={() => setEdit((e) => !e)}>
+      <div className="profiles-footer" style={{ marginTop: 12, textAlign: "center" }}>
+        <button type="button" className="btn ghost" onClick={() => setEdit((v) => !v)}>
           {edit ? "Done" : "Edit Profiles"}
         </button>
       </div>
@@ -183,7 +207,9 @@ export default function Profiles() {
         open={!!pickerFor}
         base={base}
         onClose={() => setPickerFor(null)}
-        onSelect={(val) => pickerFor && changeAvatar(pickerFor, val)}
+        onSelect={(val) => {
+          if (pickerFor) changeAvatar(pickerFor, val);
+        }}
       />
     </div>
   );
