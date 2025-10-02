@@ -426,3 +426,95 @@ footer a, .mobile-topbar a { color: #dbe7ff; text-decoration: none; }
 :root.is-mobile .profiles-quick {
   display: flex; gap: 8px; justify-content: center; margin-top: 8px;
 }
+
+
+/* Profiles header tidy layout */
+.profiles-hero { display: grid; gap: 6px; justify-items: center; }
+
+/* Mobile-only chips already exist; align nicely below brand */
+:root.is-mobile .profiles-quick { display: flex; gap: 8px; justify-content: center; margin-top: 6px; }
+:root.is-mobile .chip { display: inline-grid; place-items: center; height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #2b3c66; background: #0e1526; color: #e7eeff; text-decoration: none; }
+:root.is-mobile .chip.ghost { background: transparent; }
+
+/* --- Responsive bars with safe-area support --- */
+:root {
+  --topbar-h: 56px;
+  --botnav-h: 64px;
+}
+
+/* Force mobile layout via .is-mobile (from device.js) */
+:root.is-mobile .desktop-only { display: none !important; }
+:root.is-mobile .mobile-only  { display: block !important; }
+:root.is-mobile .sidebar      { display: none !important; }
+
+/* Reserve space for bars using safe-area insets (iOS/Android) */
+:root.is-mobile .main {
+  margin-left: 0 !important;
+  padding-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: calc(var(--botnav-h) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* Top bar */
+:root.is-mobile .mobile-topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #0f1626cc; border-bottom: 1px solid #223053; backdrop-filter: blur(10px);
+  z-index: 30;
+}
+
+/* Side buttons (left/right) get fixed width so brand can center truly */
+:root.is-mobile .mtb-side {
+  width: 40px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; border: 1px solid #223053; background: #0e1526; color: #dbe7ff;
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 10px);
+}
+:root.is-mobile .mtb-left  { left: 10px; }
+:root.is-mobile .mtb-right { right: 10px; }
+
+/* Brand sits centered because sides are absolute */
+:root.is-mobile .mtb-brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  pointer-events: none; /* brand is not a button */
+}
+:root.is-mobile .mtb-brand img { width: 22px; height: 22px; border-radius: 4px; }
+:root.is-mobile .mtb-brand span {
+  font-weight: 800; letter-spacing: .3px;
+  background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Bottom nav always visible and clickable above system bar */
+:root.is-mobile .mobile-nav {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: calc(var(--botnav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr);
+  background: #0f1626cc; border-top: 1px solid #223053; backdrop-filter: blur(10px);
+}
+:root.is-mobile .mnav-item {
+  display: grid; place-items: center; gap: 2px;
+  text-decoration: none; color: #cfe0ff; font-size: 12px; padding-top: 6px;
+}
+:root.is-mobile .mnav-item.active { color: #08121e; }
+:root.is-mobile .mnav-item.active svg {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-1) 60%, transparent));
+}
+:root.is-mobile .mnav-item.active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-1) 10%, transparent), transparent);
+}
+
+/* Mobile nav + top bar + spacing (width-based fallback) */
+@media (max-width: 992px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+  .sidebar { display: none; }
+  .main {
+    margin-left: 0;
+    padding-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--botnav-h) + env(safe-area-inset-bottom, 0px));
+  }
+  .mobile-topbar { z-index: 30; }
+  .mobile-nav    { z-index: 30; }
+}
