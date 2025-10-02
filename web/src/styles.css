@@ -518,3 +518,92 @@ footer a, .mobile-topbar a { color: #dbe7ff; text-decoration: none; }
   .mobile-topbar { z-index: 30; }
   .mobile-nav    { z-index: 30; }
 }
+
+
+/* ---- Mobile bars + safe-area support ---- */
+:root {
+  --topbar-h: 56px;
+  --botnav-h: 68px;
+}
+
+/* Helpers */
+.mobile-only { display: none; }
+@media (max-width: 992px) { .mobile-only { display: block; } }
+
+/* Also force when device.js adds .is-mobile */
+:root.is-mobile .mobile-only { display: block !important; }
+:root.is-mobile .sidebar { display: none !important; }
+:root.is-mobile .main {
+  margin-left: 0 !important;
+  padding-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: calc(var(--botnav-h) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* Width-based fallback (in case .is-mobile isn't present) */
+@media (max-width: 992px) {
+  .sidebar { display: none; }
+  .main {
+    margin-left: 0;
+    padding-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--botnav-h) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Top bar: 3-column grid so brand is truly centered */
+.mobile-topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  background: #0f1626cc; border-bottom: 1px solid #223053; backdrop-filter: blur(10px);
+  display: grid; grid-template-columns: 56px 1fr 56px; align-items: center;
+  z-index: 1000;
+}
+
+/* Left/Right buttons (fixed slots) */
+.mtb-slot {
+  height: 36px; width: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; border: 1px solid #223053; background: #0e1526; color: #dbe7ff;
+  margin: 0 10px;
+}
+.mtb-left  { justify-self: start; }
+.mtb-right { justify-self: end; }
+
+/* Brand in the center cell */
+.mtb-brand {
+  justify-self: center;
+  display: inline-flex; align-items: center; gap: 8px;
+  pointer-events: none; /* prevent taps stealing focus */
+}
+.mtb-brand img { width: 22px; height: 22px; border-radius: 4px; }
+.mtb-brand span {
+  font-weight: 800; letter-spacing: .3px;
+  background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Bottom nav (fully tappable, above system bar) */
+.mobile-nav {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: calc(var(--botnav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #0f1626cc; border-top: 1px solid #223053; backdrop-filter: blur(10px);
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  z-index: 1000; pointer-events: auto;
+}
+.mnav-item {
+  display: grid; place-items: center; gap: 2px;
+  padding-top: 8px; color: #cfe0ff; text-decoration: none;
+}
+.mnav-item .mnav-label { font-size: 12px; }
+.mnav-item.active { color: #08121e; }
+.mnav-item.active svg { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-1) 60%, transparent)); }
+.mnav-item.active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-1) 10%, transparent), transparent);
+}
+
+/* Profiles header centered (avoid overlapping quick chips) */
+.profiles-hero { display: grid; gap: 6px; justify-items: center; }
+:root.is-mobile .profiles-quick,
+@media (max-width: 992px) { .profiles-quick { display: flex; gap: 8px; justify-content: center; margin-top: 6px; } }
+.chip { display: inline-grid; place-items: center; height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #2b3c66; background: #0e1526; color: #e7eeff; text-decoration: none; }
+.chip.ghost { background: transparent; }

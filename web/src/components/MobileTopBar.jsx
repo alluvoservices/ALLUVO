@@ -10,20 +10,14 @@ export default function MobileTopBar() {
 
   return (
     <div className="mobile-topbar mobile-only" role="navigation" aria-label="Top bar">
-      {/* Left: profile chip */}
-      <button
-        aria-label="Open profiles"
-        className="mtb-side mtb-left"
-        onClick={() => navigate("/profiles")}
-      >
-        {active?.avatar ? (
-          <span className="avatar-mini img" style={{ backgroundImage: `url(${active.avatar})` }} />
-        ) : (
-          <div className="avatar-mini">{initials}</div>
-        )}
+      {/* Left slot */}
+      <button aria-label="Open profiles" className="mtb-slot mtb-left" onClick={() => navigate("/profiles")}>
+        {active?.avatar
+          ? <span className="avatar-mini img" style={{ backgroundImage: `url(${active.avatar})` }} />
+          : <div className="avatar-mini">{initials}</div>}
       </button>
 
-      {/* Center: brand */}
+      {/* Center brand */}
       <div className="mtb-brand">
         <img
           src={`${base}logo.svg`}
@@ -33,8 +27,8 @@ export default function MobileTopBar() {
         <span>ALLUVO</span>
       </div>
 
-      {/* Right: notifications */}
-      <NavLink aria-label="Notifications" to="/notifications" className="mtb-side mtb-right">
+      {/* Right slot */}
+      <NavLink aria-label="Notifications" to="/notifications" className="mtb-slot mtb-right">
         <Bell size={20}/>
       </NavLink>
     </div>

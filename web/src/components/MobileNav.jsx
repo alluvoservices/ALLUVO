@@ -11,18 +11,18 @@ import {
 const Item = ({ to, icon: Icon, label }) => (
   <NavLink to={to} className={({isActive}) => "mnav-item" + (isActive ? " active" : "")}>
     <Icon size={20} />
-    <span>{label}</span>
+    <span className="mnav-label">{label}</span>
   </NavLink>
 );
 
 export default function MobileNav() {
   return (
     <nav className="mobile-nav mobile-only" role="navigation" aria-label="Bottom navigation">
-      <Item to="/search" icon={SearchIcon} label="Search" />
-      <Item to="/stream" icon={ClapperIcon} label="Stream" />
-      <Item to="/order" icon={FoodIcon} label="Order" />
-      <Item to="/tickets" icon={TicketIcon} label="Tickets" />
-      <Item to="/playzone" icon={GameIcon} label="Play" />
+      <Item to="/search"  icon={SearchIcon}  label="Search" />
+      <Item to="/stream"  icon={ClapperIcon} label="Stream" />
+      <Item to="/order"   icon={FoodIcon}    label="Order" />
+      <Item to="/tickets" icon={TicketIcon}  label="Tickets" />
+      <Item to="/playzone" icon={GameIcon}   label="Play" />
     </nav>
   );
 }
