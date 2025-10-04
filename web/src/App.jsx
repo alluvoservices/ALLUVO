@@ -1,61 +1,37 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar.jsx";
+import TopBar from "./components/TopBar.jsx";
+import BottomNav from "./components/BottomNav.jsx";
 import Profiles from "./pages/Profiles.jsx";
 import Search from "./pages/Search.jsx";
+import Settings from "./pages/Settings.jsx";
+import Notifications from "./pages/Notifications.jsx";
 import Stream from "./pages/Stream.jsx";
-import StreamDetail from "./pages/StreamDetail.jsx";
 import Order from "./pages/Order.jsx";
-import Friends from "./pages/Friends.jsx";
 import Tickets from "./pages/Tickets.jsx";
 import Playzone from "./pages/Playzone.jsx";
-import Notifications from "./pages/Notifications.jsx";
-import Settings from "./pages/Settings.jsx";
-import Login from "./pages/Login.jsx";
-import LoaderOverlay from "./components/LoaderOverlay.jsx";
-import OpeningVideo from "./components/OpeningVideo.jsx";
-import { installDeviceWatcher } from "./utils/device.js";
-import MobileTopBar from "./components/MobileTopBar.jsx";
-import MobileNav from "./components/MobileNav.jsx";
 
 export default function App() {
-  const [loading, setLoading] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
-
-  useEffect(() => {
-    const seen = sessionStorage.getItem("intro-seen");
-    if (seen) setShowIntro(false);
-  }, []);
-
-  useEffect(() => { installDeviceWatcher(); }, []);
-  function onIntroEnd() {
-    sessionStorage.setItem("intro-seen", "1");
-    setShowIntro(false);
-  }
-
+  // ensure mobile spacing (no JS UA hacks — pure CSS with safe-area)
   return (
     <div className="app">
-      {showIntro && <OpeningVideo onEnd={onIntroEnd} />}
       <Sidebar />
-      <MobileTopBar />
+      <TopBar />
       <main className="main">
         <Routes>
-          <Route path="/" element={<Profiles />} />
+          <Route path="/" element={<Navigate to="/profiles" replace />} />
           <Route path="/profiles" element={<Profiles />} />
-          <Route path="/search" element={<Search setGlobalLoading={setLoading} />} />
-          <Route path="/stream" element={<Stream setGlobalLoading={setLoading} />} />
-          <Route path="/stream/:id" element={<StreamDetail setGlobalLoading={setLoading} />} />
-          <Route path="/order" element={<Order setGlobalLoading={setLoading} />} />
-          <Route path="/friends" element={<Friends />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/stream" element={<Stream />} />
+          <Route path="/order" element={<Order />} />
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/playzone" element={<Playzone />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/login" element={<Login setGlobalLoading={setLoading} />} />
         </Routes>
-        <MobileNav />
       </main>
-      <LoaderOverlay show={loading} />
+      <BottomNav />
     </div>
   );
 }

@@ -1,181 +1,97 @@
 import React, { useEffect, useState } from "react";
-import api from "../utils/api";
-import { useNavigate, Link } from "react-router-dom";
 import { Trash2, Pencil, Plus, Image as ImageIcon } from "lucide-react";
-import AvatarPicker from "../components/AvatarPicker.jsx";
+
+const KEY = "alluvo_profiles";
+const ACTIVE = "alluvo_activeProfile";
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
+}
+function save(list) {
+  localStorage.setItem(KEY, JSON.stringify(list));
+}
+function ensureDefaults() {
+  let list = load();
+  if (!Array.isArray(list) || list.length === 0) {
+    list = ["KIDS", "Profile 2", "Profile 3", "Profile 4"].map((n,i) => ({
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2),
+      name: n, avatar: null, kids: i === 0
+    }));
+    save(list);
+    localStorage.setItem(ACTIVE, JSON.stringify(list[0]));
+  }
+}
 
 export default function Profiles() {
-  const navigate = useNavigate();
-  const token = localStorage.getItem("token");
-
   const [list, setList] = useState([]);
-  const [activeId, setActiveId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState(null);
   const [edit, setEdit] = useState(false);
-  const [pickerFor, setPickerFor] = useState(null);
-
-  const MAX = 4;
-  const base = import.meta.env.BASE_URL || "/";
 
   useEffect(() => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    (async () => {
-      try {
-        const { data } = await api.get("/api/profiles", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const profiles = (data.profiles || []).slice(0, MAX);
-        setList(profiles);
-        setActiveId(data.activeId || null);
-        const idx = profiles.findIndex((p) => p.id === data.activeId);
-        if (idx >= 0) {
-          localStorage.setItem("activeProfileIndex", String(idx + 1));
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [token, navigate]);
+    ensureDefaults();
+    const l = load();
+    setList(l);
+    const a = JSON.parse(localStorage.getItem(ACTIVE) || "null");
+    setActive(a);
+  }, []);
 
-  async function addProfile() {
-    if (list.length >= MAX) {
-      alert(`Maximum ${MAX} profiles`);
-      return;
-    }
-    const name = prompt("Profile name? (e.g., KIDS, Profile 2)");
-    if (!name) return;
-    const { data } = await api.post(
-      "/api/profiles",
-      { name },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setList((x) => [...x, data.profile].slice(0, MAX));
+  function activate(p) {
+    setActive(p);
+    localStorage.setItem(ACTIVE, JSON.stringify(p));
   }
 
-  async function renameProfile(id, currentName) {
-    const name = prompt("New name", currentName);
+  function addProfile() {
+    if (list.length >= 4) return alert("Maximum 4 profiles");
+    const name = prompt("Profile name?");
     if (!name) return;
-    const { data } = await api.put(
-      `/api/profiles/${id}`,
-      { name },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setList((prev) => prev.map((p) => (p.id === id ? data.profile : p)));
-    if (data.profile.id === activeId) {
-      localStorage.setItem("activeProfile", JSON.stringify(data.profile));
-    }
+    const p = { id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2), name, avatar: null, kids: false };
+    const next = [...list, p];
+    setList(next); save(next);
   }
 
-  async function removeProfile(id) {
+  function renameProfile(id, cur) {
+    const name = prompt("New name", cur);
+    if (!name) return;
+    const next = list.map(p => p.id === id ? { ...p, name } : p);
+    setList(next); save(next);
+    if (active?.id === id) { localStorage.setItem(ACTIVE, JSON.stringify(next.find(p=>p.id===id))); setActive(next.find(p=>p.id===id)); }
+  }
+
+  function removeProfile(id) {
     if (!confirm("Delete this profile?")) return;
-    await api.delete(`/api/profiles/${id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    setList((prev) => prev.filter((p) => p.id !== id));
-    if (id === activeId) {
-      localStorage.removeItem("activeProfile");
-      localStorage.removeItem("activeProfileIndex");
-      setActiveId(null);
+    let next = list.filter(p => p.id !== id);
+    if (next.length === 0) {
+      next = ["KIDS","Profile 2","Profile 3","Profile 4"].map((n,i)=>({ id: String(Math.random()).slice(2), name:n, avatar:null, kids:i===0 }));
     }
+    setList(next); save(next);
+    if (active?.id === id) { localStorage.setItem(ACTIVE, JSON.stringify(next[0])); setActive(next[0]); }
   }
 
-  async function activate(id) {
-    await api.post(
-      `/api/profiles/${id}/activate`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setActiveId(id);
-    const idx = list.findIndex((x) => x.id === id);
-    if (idx >= 0) {
-      localStorage.setItem("activeProfileIndex", String(idx + 1));
-    }
-    const p = list.find((x) => x.id === id);
-    if (p) {
-      localStorage.setItem("activeProfile", JSON.stringify(p));
-    }
-    navigate("/stream");
+  function changeAvatar(id) {
+    alert("Avatar picker can be added later. For now, this is a placeholder.");
   }
 
-  async function changeAvatar(profileId, value) {
-    const { data } = await api.put(
-      `/api/profiles/${profileId}`,
-      { avatar: value },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setList((prev) => prev.map((p) => (p.id === profileId ? data.profile : p)));
-    if (data.profile.id === activeId) {
-      localStorage.setItem("activeProfile", JSON.stringify(data.profile));
-    }
-  }
-
-  if (loading) {
-    return <div className="page">Loading profiles…</div>;
-  }
-
-  const canAdd = list.length < MAX;
+  const canAdd = list.length < 4;
 
   return (
     <div className="page">
-      {/* Header (simple and safe) */}
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <div className="hero-brand">ALLUVO</div>
-        <div className="hero-sub">The Digital Multiplex</div>
-        <div className="profiles-quick mobile-only" style={{ marginTop: 8 }}>
-          <Link className="chip" to="/settings">Settings</Link>
-          <Link className="chip ghost" to="/notifications">Notifications</Link>
-        </div>
-      </div>
+      <div className="hero-brand">ALLUVO</div>
+      <div className="hero-sub">The Digital Multiplex</div>
 
-      {/* Grid */}
-      <div className="profiles-grid-2x2">
+      <div className="profiles-grid-2x2" style={{ marginTop: 10 }}>
         {list.map((p) => {
-          const isActive = p.id === activeId;
+          const isActive = active?.id === p.id;
           return (
             <div key={p.id} className={"p-tile" + (isActive ? " active" : "")}>
-              <button
-                type="button"
-                className={"avatar-xxl" + (isActive ? " ring" : "")}
-                onClick={() => activate(p.id)}
-                title="Activate"
-              >
-                {p.avatar ? (
-                  <img src={p.avatar} alt="" className="avatar-xxl-img" />
-                ) : (
-                  <span>{(p.name || "P").charAt(0).toUpperCase()}</span>
-                )}
+              <button type="button" className={"avatar-xxl" + (isActive ? " ring" : "")} onClick={()=>activate(p)}>
+                {p.avatar ? <img src={p.avatar} alt="" className="avatar-xxl-img" /> : <span>{(p.name || "P").charAt(0).toUpperCase()}</span>}
               </button>
               <div className="p-title">{p.name}</div>
-
               {edit && (
                 <div className="p-actions">
-                  <button
-                    type="button"
-                    className="chip"
-                    title="Change avatar"
-                    onClick={() => setPickerFor(p.id)}
-                  >
-                    <ImageIcon size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="chip ghost"
-                    onClick={() => renameProfile(p.id, p.name)}
-                    title="Rename"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="chip danger"
-                    onClick={() => removeProfile(p.id)}
-                    title="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <button type="button" className="chip" onClick={()=>changeAvatar(p.id)} title="Change avatar"><ImageIcon size={16} /></button>
+                  <button type="button" className="chip ghost" onClick={()=>renameProfile(p.id, p.name)} title="Rename"><Pencil size={16} /></button>
+                  <button type="button" className="chip danger" onClick={()=>removeProfile(p.id)} title="Delete"><Trash2 size={16} /></button>
                 </div>
               )}
             </div>
@@ -184,33 +100,15 @@ export default function Profiles() {
 
         {canAdd && (
           <div className="p-tile add">
-            <button
-              type="button"
-              className="avatar-xxl plus"
-              onClick={addProfile}
-              title="Add Profile"
-            >
-              <Plus size={42} />
-            </button>
+            <button type="button" className="avatar-xxl plus" onClick={addProfile}><Plus size={42} /></button>
             <div className="p-title muted">Add Profile</div>
           </div>
         )}
       </div>
 
-      <div className="profiles-footer" style={{ marginTop: 12, textAlign: "center" }}>
-        <button type="button" className="btn ghost" onClick={() => setEdit((v) => !v)}>
-          {edit ? "Done" : "Edit Profiles"}
-        </button>
+      <div style={{ textAlign: "center", marginTop: 12 }}>
+        <button type="button" className="btn ghost" onClick={()=>setEdit(v=>!v)}>{edit ? "Done" : "Edit Profiles"}</button>
       </div>
-
-      <AvatarPicker
-        open={!!pickerFor}
-        base={base}
-        onClose={() => setPickerFor(null)}
-        onSelect={(val) => {
-          if (pickerFor) changeAvatar(pickerFor, val);
-        }}
-      />
     </div>
   );
 }

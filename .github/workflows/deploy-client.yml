@@ -4,7 +4,7 @@ on:
     branches: [ main ]
     paths:
       - 'web/**'
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -26,10 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: echo "VITE_API_URL=${{ secrets.API_URL }}" > .env.production
+      - run: npm ci
       - run: npm run build
-      - run: node scripts/spa-404.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
